@@ -2,6 +2,8 @@
 
 A client-only chess opening trainer. See the exact variation, play one side from memory, and let Chugg play the other. Built with React, TypeScript, Vite, chess.js, IndexedDB, and a service worker.
 
+**[Open Chugg](https://raaidrt.com/chugg/)** — hosted on GitHub Pages, inheriting the account's existing `raaidrt.com` domain. HTTPS is enforced. Use **Install Chugg** in the app for Safari and Android instructions.
+
 ## Run locally
 
 Use Node 22.12+ and npm.
@@ -43,7 +45,7 @@ This repository includes a test/build workflow and a manually triggered Pages de
 1. Push the repository to GitHub.
 2. Under **Settings → Pages → Build and deployment**, choose **GitHub Actions**.
 3. Under **Actions → Deploy to GitHub Pages**, select **Run workflow** on the branch to deploy.
-4. The deployment action reports the HTTPS URL. For this repository the project URL is `https://raaidrt.github.io/chugg/` unless a custom domain is configured.
+4. The deployment action reports the HTTPS URL. This repository inherits the account's custom domain and is published at `https://raaidrt.com/chugg/`.
 
 The workflow obtains the Pages base path and sets `BASE_PATH` during the build. This also updates the manifest scope, service worker, and asset URLs. Test this layout locally with:
 

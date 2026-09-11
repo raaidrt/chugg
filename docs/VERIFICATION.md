@@ -12,5 +12,6 @@ Verified locally on September 11, 2026:
 - Browser: updated a cached release through the update prompt between drills.
 - Browser: checked Safari and Android installation instructions and the `/chugg/` manifest/piece image paths.
 - At a 390px mobile viewport, document width matched viewport width with no horizontal overflow; every observed piece image loaded.
+- GitHub Actions test/build and initial Pages deployment both succeeded for release commit `31894c8`. The live HTTPS site at `https://raaidrt.com/chugg/` loaded its piece assets and reached “Ready for offline practice.”
 
 Physical iPhone/Android home-screen installation has not been exercised in this desktop environment. Follow the in-app guides on a real phone for a final platform check. Browser storage eviction and cross-device migration depend on the browser and device; export/import tests verify the app's backup logic.
