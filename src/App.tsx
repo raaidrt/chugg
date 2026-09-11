@@ -12,7 +12,6 @@ import {
   Settings2,
   ShieldCheck,
   Shuffle,
-  Sparkles,
   Target,
   X,
 } from 'lucide-react';
@@ -156,6 +155,7 @@ export default function App() {
   const lineProgress = progress.find(
     (item) => item.lineId === line.id && item.side === preferences.side,
   );
+  const moveCount = playerMoveCount(line.moves, preferences.side);
   const previewGame = useMemo(() => positionAt(line.moves, Math.min(line.moves.length, 6)), [line]);
   const filtered = openings.filter(
     (item) =>
@@ -222,7 +222,7 @@ export default function App() {
           onExit={() => setTraining(false)}
           onNext={() => {
             shuffle();
-            setTraining(false);
+            start();
           }}
         />
       ) : (
@@ -230,21 +230,10 @@ export default function App() {
           {page === 'practice' && (
             <main className="home-page page-enter">
               <section className="hero-copy">
-                <div className="eyebrow">
-                  <span className="tiny-diamond" /> A little practice. A better opening.
-                </div>
-                <h1>
-                  Make your next
-                  <br />
-                  move <em>familiar.</em>
-                </h1>
-                <p className="hero-description">
-                  Learn the opening. Recall the moves.
-                  <br className="desktop-break" /> Build a repertoire that stays with you.
-                </p>
+                <h1>Practice openings</h1>
                 <div className="practice-controls">
                   <div className="control-heading">
-                    <label htmlFor="opening-family">Your practice</label>
+                    <label htmlFor="opening-family">Opening family</label>
                     <button className="info-button" onClick={() => setDialog('sampling')}>
                       <CircleHelp size={14} /> How we pick
                     </button>
@@ -299,28 +288,19 @@ export default function App() {
                     </div>
                     <h2>{line.name}</h2>
                     <p>
-                      {playerMoveCount(line.moves, preferences.side)} moves to recall <span>·</span>{' '}
+                      {moveCount} {moveCount === 1 ? 'move' : 'moves'} to recall <span>·</span>{' '}
                       {lineProgress?.completions
                         ? `${lineProgress.completions} ${lineProgress.completions === 1 ? 'practice' : 'practices'}`
-                        : 'A fresh line to learn'}
+                        : 'Not practiced yet'}
                     </p>
                   </div>
                   <button className="primary-button start-button" disabled={!ready} onClick={start}>
                     {ready ? 'Practice this opening' : 'Getting your board ready…'}
                     <ArrowRight size={19} />
                   </button>
-                  <p className="practice-footnote">
-                    <ShieldCheck size={14} /> No account. No clock. Just your next move.
-                  </p>
                 </div>
               </section>
               <section className="hero-board-section" aria-label="Opening preview">
-                <div className="board-top-label">
-                  <span>
-                    <span className="live-dot" /> YOUR REPERTOIRE STARTS HERE
-                  </span>
-                  <span>01 / ∞</span>
-                </div>
                 <div className="preview-board">
                   <ChessBoard
                     game={previewGame}
@@ -334,31 +314,6 @@ export default function App() {
                   </span>
                   <span>{line.eco}</span>
                 </div>
-                <div className="board-note">
-                  <span className="note-spark">✳</span>
-                  <p>
-                    The best opening is one
-                    <br />
-                    <em>you remember.</em>
-                  </p>
-                </div>
-              </section>
-              <section className="how-it-works" aria-label="How Chugg works">
-                <div>
-                  <span className="step-number">01</span>
-                  <h3>Meet the variation</h3>
-                  <p>Know exactly which line you’re learning.</p>
-                </div>
-                <div>
-                  <span className="step-number">02</span>
-                  <h3>Find your moves</h3>
-                  <p>You play one side. Chugg plays the other.</p>
-                </div>
-                <div>
-                  <span className="step-number">03</span>
-                  <h3>Make it stick</h3>
-                  <p>Repeat a line. Build a little confidence.</p>
-                </div>
               </section>
             </main>
           )}
@@ -366,9 +321,7 @@ export default function App() {
             <main className="collection-page page-enter">
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">Build your repertoire</div>
-                  <h1>A world of openings.</h1>
-                  <p>Find a familiar favorite. Make a new one.</p>
+                  <h1>Openings</h1>
                 </div>
                 <span className="count-pill">{openings.length} variations</span>
               </div>
@@ -397,6 +350,7 @@ export default function App() {
               </div>
               <div className="library-grid">
                 {filtered.map((item) => {
+                  const moveCount = playerMoveCount(item.moves, preferences.side);
                   const learned = progress.some((entry) => entry.lineId === item.id);
                   return (
                     <button className="library-card" key={item.id} onClick={() => openLine(item)}>
@@ -411,10 +365,9 @@ export default function App() {
                         )}
                       </div>
                       <h2>{item.name}</h2>
-                      <p>{item.description}</p>
                       <div className="library-card-bottom">
                         <span>
-                          {playerMoveCount(item.moves, preferences.side)} moves as{' '}
+                          {moveCount} {moveCount === 1 ? 'move' : 'moves'} as{' '}
                           {preferences.side === 'w' ? 'White' : 'Black'}
                         </span>
                         <ArrowRight size={18} />
@@ -445,17 +398,13 @@ export default function App() {
             <main className="collection-page progress-page page-enter">
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">Little by little</div>
-                  <h1>Your repertoire, growing.</h1>
-                  <p>Every line you practice is another place to feel at home.</p>
+                  <h1>Your progress</h1>
                 </div>
-                <Sparkles size={32} strokeWidth={1.3} />
               </div>
               <div className="stat-grid">
                 <div>
                   <span>Practice sessions</span>
                   <strong>{totalSessions}</strong>
-                  <p>One completed line at a time</p>
                 </div>
                 <div>
                   <span>Variations explored</span>
@@ -463,7 +412,6 @@ export default function App() {
                     {uniqueLines}
                     <small> / {openings.length}</small>
                   </strong>
-                  <p>A wider world of possibilities</p>
                 </div>
                 <div>
                   <span>Clean recalls</span>
@@ -521,10 +469,10 @@ export default function App() {
                   <div className="empty-piece">
                     <img src={`${import.meta.env.BASE_URL}piece/maestro/wN.svg`} alt="" />
                   </div>
-                  <h2>Your first line is waiting.</h2>
+                  <h2>No completed openings yet</h2>
                   <p>Complete an opening to start seeing your progress here.</p>
                   <button className="primary-button" onClick={() => navigate('practice')}>
-                    Let’s practice <ArrowRight size={18} />
+                    Practice <ArrowRight size={18} />
                   </button>
                 </div>
               )}
@@ -539,7 +487,6 @@ export default function App() {
           <footer className="site-footer">
             <div>
               <span className="footer-brand">chugg.</span>
-              <span>A small habit. A stronger opening.</span>
             </div>
             <div className="footer-actions">
               <OfflineStatus allowUpdate={!training} />

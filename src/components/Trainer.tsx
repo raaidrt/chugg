@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Lightbulb, RotateCcw, Sparkles } from 'lucide-react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, Lightbulb, RotateCcw } from 'lucide-react';
 import type { Square } from 'chess.js';
 import type { DrillResult, OpeningLine, Side } from '../types';
 import { checkMove, notation, playerMoveCount, positionAt } from '../lib/trainer';
@@ -13,6 +13,12 @@ interface Props {
   onComplete: (result: DrillResult) => void;
 }
 export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
+  const [introducing, setIntroducing] = useState(true);
+  const pageRef = useRef<HTMLElement>(null);
+  const headingRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLElement>(null);
+  const detailsRef = useRef<HTMLElement>(null);
+  const entranceAnimations = useRef<Animation[]>([]);
   const [ply, setPly] = useState(0);
   const [selected, setSelected] = useState<Square | null>(null);
   const [hints, setHints] = useState(0);
@@ -24,21 +30,93 @@ export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
   const reported = useRef(false);
   const game = useMemo(() => positionAt(line.moves, ply), [line.moves, ply]);
   const done = ply >= line.moves.length;
-  const ownTurn = !done && game.turn() === side;
+  const ownTurn = !introducing && !done && game.turn() === side;
   const completed = playerMoveCount(line.moves, side, ply);
   const total = playerMoveCount(line.moves, side);
   const destinations = selected
     ? game.moves({ square: selected, verbose: true }).map((move) => move.to)
     : [];
 
+  useLayoutEffect(() => {
+    const heading = headingRef.current;
+    const page = pageRef.current;
+    const content = [boardRef.current, detailsRef.current];
+    if (!heading || !page) return;
+    heading.querySelector('h1')?.focus({ preventScroll: true });
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reducedMotion.matches || !heading.animate) {
+      setIntroducing(false);
+      return;
+    }
+
+    const target = heading.getBoundingClientRect();
+    const stage = page.getBoundingClientRect();
+    const scale = Math.min(1.16, (window.innerWidth - 32) / target.width);
+    const x = stage.left + stage.width / 2 - (target.left + target.width / 2);
+    const y =
+      stage.top +
+      Math.min(window.innerHeight - stage.top - 96, 620) / 2 -
+      (target.top + target.height / 2);
+    const introduction = `translate(${x}px, ${y}px) scale(${scale})`;
+    const titleAnimation = heading.animate(
+      [
+        { opacity: 0, transform: introduction, offset: 0 },
+        { opacity: 1, transform: introduction, offset: 0.18 },
+        {
+          opacity: 1,
+          transform: introduction,
+          offset: 0.52,
+          easing: 'cubic-bezier(.22, 1, .36, 1)',
+        },
+        { opacity: 1, transform: 'none', offset: 1 },
+      ],
+      { duration: 1250, fill: 'both' },
+    );
+    const animations = [
+      titleAnimation,
+      ...content.flatMap((element) =>
+        element
+          ? [
+              element.animate(
+                [
+                  { opacity: 0, transform: 'translateY(12px)' },
+                  { opacity: 1, transform: 'none' },
+                ],
+                { duration: 450, delay: 800, easing: 'ease-out', fill: 'both' },
+              ),
+            ]
+          : [],
+      ),
+    ];
+    entranceAnimations.current = animations;
+    const finish = () => animations.forEach((animation) => animation.finish());
+    titleAnimation.onfinish = () => {
+      setIntroducing(false);
+      window.removeEventListener('resize', finish);
+      reducedMotion.removeEventListener('change', finish);
+    };
+    window.addEventListener('resize', finish, { once: true });
+    reducedMotion.addEventListener('change', finish, { once: true });
+    return () => {
+      titleAnimation.onfinish = null;
+      animations.forEach((animation) => animation.cancel());
+      window.removeEventListener('resize', finish);
+      reducedMotion.removeEventListener('change', finish);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!introducing) entranceAnimations.current.forEach((animation) => animation.cancel());
+  }, [introducing]);
+
   useEffect(() => {
-    if (done || game.turn() === side) return;
+    if (introducing || done || game.turn() === side) return;
     const timer = window.setTimeout(() => {
       setPly((value) => (value === ply ? value + 1 : value));
-      setMessage('Your turn. Find the next move in this variation.');
+      setMessage('Your turn.');
     }, 650);
     return () => window.clearTimeout(timer);
-  }, [ply, done, game, side, round]);
+  }, [introducing, ply, done, game, side, round]);
 
   useEffect(() => {
     if (done && !reported.current) {
@@ -55,7 +133,7 @@ export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
       setPly((value) => value + 1);
       setSelected(null);
       setHint(false);
-      setMessage('That’s it. Keep going.');
+      setMessage('Correct.');
     } else {
       setMistakes((value) => value + 1);
       setSelected(null);
@@ -114,12 +192,32 @@ export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
   }
 
   return (
-    <main className="trainer-page page-enter">
+    <main
+      ref={pageRef}
+      className="trainer-page"
+      data-introducing={introducing}
+      data-complete={done}
+    >
       <button className="text-button back-link" onClick={onExit}>
         <ArrowLeft size={17} /> Back to practice
       </button>
       <div className="trainer-layout">
-        <section className="training-board-section">
+        <div className="training-heading" ref={headingRef}>
+          <h1 className="training-title" tabIndex={-1}>
+            {line.name}
+          </h1>
+          <div className="training-meta">
+            <span className="eco-tag">{line.eco}</span>
+            <span>
+              {side === 'w' ? 'White' : 'Black'} · {total} {total === 1 ? 'move' : 'moves'}
+            </span>
+          </div>
+        </div>
+        <section
+          className="training-board-section trainer-content"
+          ref={boardRef}
+          inert={introducing}
+        >
           <div className="player-row">
             <div className="player-name">
               <span className={`side-dot ${side === 'w' ? 'black' : 'white'}`} />
@@ -127,7 +225,6 @@ export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
                 Chugg <small>{side === 'w' ? 'Black' : 'White'}</small>
               </span>
             </div>
-            <span className="small-muted">Your practice partner</span>
           </div>
           <div className="board-wrap">
             <ChessBoard
@@ -182,27 +279,28 @@ export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
             </span>
           </div>
         </section>
-        <section className="training-details" aria-label="Drill details">
-          <div className="eyebrow">
-            {done ? 'A little more familiar' : 'Recall the opening'}{' '}
-            <span className="eco-tag">{line.eco}</span>
-          </div>
-          <h1 className="training-title">{line.name}</h1>
+        <section
+          className="training-details trainer-content"
+          aria-label="Drill details"
+          ref={detailsRef}
+          inert={introducing}
+        >
           {done ? (
-            <div className="completion page-enter">
+            <div className="completion">
               <div className="completion-mark">
                 <Check size={28} strokeWidth={1.7} />
               </div>
-              <h2>One line closer.</h2>
-              <p>
-                {hints === 0 && mistakes === 0
-                  ? 'Every move from memory. Nicely played.'
-                  : 'You’ve completed the line. A little repetition makes it stick.'}
-              </p>
+              <h2>Line complete</h2>
+              <button className="primary-button next-opening-button" onClick={onNext}>
+                Next opening <ArrowRight size={18} />
+              </button>
+              <button className="secondary-button full-width" onClick={restart}>
+                <RotateCcw size={16} /> Practice again
+              </button>
               <div className="result-stats">
                 <div>
                   <strong>{total}</strong>
-                  <span>moves played</span>
+                  <span>{total === 1 ? 'move' : 'moves'} played</span>
                 </div>
                 <div>
                   <strong>{mistakes}</strong>
@@ -213,24 +311,13 @@ export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
                   <span>hints</span>
                 </div>
               </div>
-              <p className="opening-explanation">{line.description}</p>
               <div className="recap">
                 <span className="eyebrow">The complete line</span>
                 <p>{notation(line.moves)}</p>
               </div>
-              <button className="primary-button" onClick={onNext}>
-                Next opening <ArrowRight size={18} />
-              </button>
-              <button className="secondary-button full-width" onClick={restart}>
-                <RotateCcw size={16} /> Practice again
-              </button>
             </div>
           ) : (
             <>
-              <p className="training-description">
-                You’re playing as <strong>{side === 'w' ? 'White' : 'Black'}</strong>. Bring this
-                variation to life, one move at a time.
-              </p>
               <div className="drill-progress">
                 <div>
                   <span>Your moves</span>
@@ -243,8 +330,7 @@ export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
                 </div>
               </div>
               <div className={`feedback ${hint ? 'is-hint' : ''}`} aria-live="polite">
-                <Sparkles size={18} />
-                <p>{ownTurn ? message : 'Chugg is playing the other side. Your move is next.'}</p>
+                <p>{ownTurn ? message : 'Chugg is moving…'}</p>
               </div>
               <button
                 className="secondary-button hint-button"
@@ -255,9 +341,8 @@ export function Trainer({ line, side, onExit, onNext, onComplete }: Props) {
               </button>
               <div className="played-moves">
                 <span className="eyebrow">Moves so far</span>
-                <p>{ply ? notation(line.moves.slice(0, ply)) : 'The board is yours.'}</p>
+                <p>{ply ? notation(line.moves.slice(0, ply)) : 'No moves yet.'}</p>
               </div>
-              <p className="quiet-note">Take your time. This is practice.</p>
             </>
           )}
         </section>

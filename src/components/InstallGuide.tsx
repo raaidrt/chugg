@@ -15,14 +15,11 @@ export function InstallGuide({ onClose }: { onClose: () => void }) {
     /Android/i.test(navigator.userAgent) ? 'android' : 'iphone',
   );
   return (
-    <DeviceDialog title="A home for your openings." id="install-title" onClose={onClose}>
+    <DeviceDialog title="Install Chugg" id="install-title" onClose={onClose}>
       <div className="device-dialog-icon">
         <Smartphone size={28} />
       </div>
-      <p>
-        Add Chugg to your home screen for a focused, full-screen practice session. No app store
-        needed.
-      </p>
+      <p>Add Chugg to your home screen.</p>
       {isStandalone() ? (
         <p className="device-dialog-notice">You’re already using Chugg as an app.</p>
       ) : (
