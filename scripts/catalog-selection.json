@@ -1,0 +1,362 @@
+[
+  {
+    "id": "italian-game-giuoco-piano",
+    "familyId": "italian-game",
+    "family": "Italian Game",
+    "eco": "C50",
+    "name": "Italian Game: Giuoco Piano",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5"
+  },
+  {
+    "id": "italian-game-giuoco-pianissimo",
+    "familyId": "italian-game",
+    "family": "Italian Game",
+    "eco": "C50",
+    "name": "Italian Game: Giuoco Pianissimo",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. d3"
+  },
+  {
+    "id": "italian-game-giuoco-piano-greco-s-attack",
+    "familyId": "italian-game",
+    "family": "Italian Game",
+    "eco": "C54",
+    "name": "Italian Game: Giuoco Piano, Greco's Attack",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ 7. Nc3"
+  },
+  {
+    "id": "italian-game-two-knights-defense",
+    "familyId": "italian-game",
+    "family": "Italian Game",
+    "eco": "C55",
+    "name": "Italian Game: Two Knights Defense",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6"
+  },
+  {
+    "id": "ruy-lopez-berlin-defense",
+    "familyId": "ruy-lopez",
+    "family": "Ruy Lopez",
+    "eco": "C65",
+    "name": "Ruy Lopez: Berlin Defense",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6"
+  },
+  {
+    "id": "ruy-lopez-exchange-variation",
+    "familyId": "ruy-lopez",
+    "family": "Ruy Lopez",
+    "eco": "C68",
+    "name": "Ruy Lopez: Exchange Variation",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6"
+  },
+  {
+    "id": "ruy-lopez-morphy-defense",
+    "familyId": "ruy-lopez",
+    "family": "Ruy Lopez",
+    "eco": "C70",
+    "name": "Ruy Lopez: Morphy Defense",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6"
+  },
+  {
+    "id": "ruy-lopez-marshall-attack",
+    "familyId": "ruy-lopez",
+    "family": "Ruy Lopez",
+    "eco": "C89",
+    "name": "Ruy Lopez: Marshall Attack",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 O-O 8. c3 d5"
+  },
+  {
+    "id": "sicilian-defense-najdorf-variation",
+    "familyId": "sicilian-defense",
+    "family": "Sicilian Defense",
+    "eco": "B90",
+    "name": "Sicilian Defense: Najdorf Variation",
+    "pgn": "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6"
+  },
+  {
+    "id": "sicilian-defense-dragon-variation",
+    "familyId": "sicilian-defense",
+    "family": "Sicilian Defense",
+    "eco": "B70",
+    "name": "Sicilian Defense: Dragon Variation",
+    "pgn": "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 g6"
+  },
+  {
+    "id": "sicilian-defense-alapin-variation",
+    "familyId": "sicilian-defense",
+    "family": "Sicilian Defense",
+    "eco": "B22",
+    "name": "Sicilian Defense: Alapin Variation",
+    "pgn": "1. e4 c5 2. c3"
+  },
+  {
+    "id": "sicilian-defense-closed",
+    "familyId": "sicilian-defense",
+    "family": "Sicilian Defense",
+    "eco": "B23",
+    "name": "Sicilian Defense: Closed",
+    "pgn": "1. e4 c5 2. Nc3"
+  },
+  {
+    "id": "sicilian-defense-nyezhmetdinov-rossolimo-attack",
+    "familyId": "sicilian-defense",
+    "family": "Sicilian Defense",
+    "eco": "B30",
+    "name": "Sicilian Defense: Nyezhmetdinov-Rossolimo Attack",
+    "pgn": "1. e4 c5 2. Nf3 Nc6 3. Bb5"
+  },
+  {
+    "id": "sicilian-defense-accelerated-dragon",
+    "familyId": "sicilian-defense",
+    "family": "Sicilian Defense",
+    "eco": "B32",
+    "name": "Sicilian Defense: Accelerated Dragon",
+    "pgn": "1. e4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 g6"
+  },
+  {
+    "id": "french-defense-advance-variation",
+    "familyId": "french-defense",
+    "family": "French Defense",
+    "eco": "C02",
+    "name": "French Defense: Advance Variation",
+    "pgn": "1. e4 e6 2. d4 d5 3. e5"
+  },
+  {
+    "id": "french-defense-exchange-variation",
+    "familyId": "french-defense",
+    "family": "French Defense",
+    "eco": "C01",
+    "name": "French Defense: Exchange Variation",
+    "pgn": "1. e4 e6 2. d4 d5 3. exd5"
+  },
+  {
+    "id": "french-defense-winawer-variation",
+    "familyId": "french-defense",
+    "family": "French Defense",
+    "eco": "C15",
+    "name": "French Defense: Winawer Variation",
+    "pgn": "1. e4 e6 2. d4 d5 3. Nc3 Bb4"
+  },
+  {
+    "id": "french-defense-tarrasch-variation",
+    "familyId": "french-defense",
+    "family": "French Defense",
+    "eco": "C03",
+    "name": "French Defense: Tarrasch Variation",
+    "pgn": "1. e4 e6 2. d4 d5 3. Nd2"
+  },
+  {
+    "id": "caro-kann-defense-advance-variation",
+    "familyId": "caro-kann-defense",
+    "family": "Caro-Kann Defense",
+    "eco": "B12",
+    "name": "Caro-Kann Defense: Advance Variation",
+    "pgn": "1. e4 c6 2. d4 d5 3. e5"
+  },
+  {
+    "id": "caro-kann-defense-classical-variation",
+    "familyId": "caro-kann-defense",
+    "family": "Caro-Kann Defense",
+    "eco": "B18",
+    "name": "Caro-Kann Defense: Classical Variation",
+    "pgn": "1. e4 c6 2. d4 d5 3. Nd2 dxe4 4. Nxe4 Bf5"
+  },
+  {
+    "id": "caro-kann-defense-panov-attack",
+    "familyId": "caro-kann-defense",
+    "family": "Caro-Kann Defense",
+    "eco": "B13",
+    "name": "Caro-Kann Defense: Panov Attack",
+    "pgn": "1. e4 c6 2. d4 d5 3. exd5 cxd5 4. c4"
+  },
+  {
+    "id": "caro-kann-defense-exchange-variation",
+    "familyId": "caro-kann-defense",
+    "family": "Caro-Kann Defense",
+    "eco": "B13",
+    "name": "Caro-Kann Defense: Exchange Variation",
+    "pgn": "1. e4 c6 2. d4 d5 3. exd5"
+  },
+  {
+    "id": "scandinavian-defense-main-line",
+    "familyId": "scandinavian-defense",
+    "family": "Scandinavian Defense",
+    "eco": "B01",
+    "name": "Scandinavian Defense: Main Line",
+    "pgn": "1. e4 d5 2. exd5 Qxd5 3. Nc3 Qa5"
+  },
+  {
+    "id": "scandinavian-defense-modern-variation",
+    "familyId": "scandinavian-defense",
+    "family": "Scandinavian Defense",
+    "eco": "B01",
+    "name": "Scandinavian Defense: Modern Variation",
+    "pgn": "1. e4 d5 2. exd5 Nf6"
+  },
+  {
+    "id": "scandinavian-defense-gubinsky-melts-defense",
+    "familyId": "scandinavian-defense",
+    "family": "Scandinavian Defense",
+    "eco": "B01",
+    "name": "Scandinavian Defense: Gubinsky-Melts Defense",
+    "pgn": "1. e4 d5 2. exd5 Qxd5 3. Nc3 Qd6"
+  },
+  {
+    "id": "queen-s-gambit-declined-exchange-variation",
+    "familyId": "queen-s-gambit",
+    "family": "Queen's Gambit",
+    "eco": "D35",
+    "name": "Queen's Gambit Declined: Exchange Variation",
+    "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 d5 4. cxd5"
+  },
+  {
+    "id": "queen-s-gambit-declined-orthodox-defense",
+    "familyId": "queen-s-gambit",
+    "family": "Queen's Gambit",
+    "eco": "D60",
+    "name": "Queen's Gambit Declined: Orthodox Defense",
+    "pgn": "1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Be7 5. Bg5 O-O 6. e3 Nbd7"
+  },
+  {
+    "id": "queen-s-gambit-declined-tarrasch-defense",
+    "familyId": "queen-s-gambit",
+    "family": "Queen's Gambit",
+    "eco": "D32",
+    "name": "Queen's Gambit Declined: Tarrasch Defense",
+    "pgn": "1. d4 d5 2. c4 e6 3. Nc3 c5 4. cxd5 exd5"
+  },
+  {
+    "id": "queen-s-gambit-accepted-classical-defense",
+    "familyId": "queen-s-gambit",
+    "family": "Queen's Gambit",
+    "eco": "D26",
+    "name": "Queen's Gambit Accepted: Classical Defense",
+    "pgn": "1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3 e6 5. Bxc4 c5"
+  },
+  {
+    "id": "slav-defense-exchange-variation",
+    "familyId": "slav-defense",
+    "family": "Slav Defense",
+    "eco": "D10",
+    "name": "Slav Defense: Exchange Variation",
+    "pgn": "1. d4 d5 2. c4 c6 3. cxd5"
+  },
+  {
+    "id": "slav-defense-czech-variation",
+    "familyId": "slav-defense",
+    "family": "Slav Defense",
+    "eco": "D17",
+    "name": "Slav Defense: Czech Variation",
+    "pgn": "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4 5. a4 Bf5"
+  },
+  {
+    "id": "slav-defense-three-knights-variation",
+    "familyId": "slav-defense",
+    "family": "Slav Defense",
+    "eco": "D15",
+    "name": "Slav Defense: Three Knights Variation",
+    "pgn": "1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3"
+  },
+  {
+    "id": "king-s-indian-defense-orthodox-variation",
+    "familyId": "king-s-indian-defense",
+    "family": "King's Indian Defense",
+    "eco": "E91",
+    "name": "King's Indian Defense: Orthodox Variation",
+    "pgn": "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. Nf3 O-O 6. Be2"
+  },
+  {
+    "id": "king-s-indian-defense-samisch-variation",
+    "familyId": "king-s-indian-defense",
+    "family": "King's Indian Defense",
+    "eco": "E80",
+    "name": "King's Indian Defense: Sämisch Variation",
+    "pgn": "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. f3"
+  },
+  {
+    "id": "king-s-indian-defense-four-pawns-attack",
+    "familyId": "king-s-indian-defense",
+    "family": "King's Indian Defense",
+    "eco": "E76",
+    "name": "King's Indian Defense: Four Pawns Attack",
+    "pgn": "1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 5. f4"
+  },
+  {
+    "id": "nimzo-indian-defense-classical-variation",
+    "familyId": "nimzo-indian-defense",
+    "family": "Nimzo-Indian Defense",
+    "eco": "E32",
+    "name": "Nimzo-Indian Defense: Classical Variation",
+    "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Qc2"
+  },
+  {
+    "id": "nimzo-indian-defense-rubinstein-system",
+    "familyId": "nimzo-indian-defense",
+    "family": "Nimzo-Indian Defense",
+    "eco": "E40",
+    "name": "Nimzo-Indian Defense: Rubinstein System",
+    "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3"
+  },
+  {
+    "id": "nimzo-indian-defense-samisch-variation",
+    "familyId": "nimzo-indian-defense",
+    "family": "Nimzo-Indian Defense",
+    "eco": "E24",
+    "name": "Nimzo-Indian Defense: Sämisch Variation",
+    "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. a3"
+  },
+  {
+    "id": "english-opening-king-s-english-variation-four-knights-variation",
+    "familyId": "english-opening",
+    "family": "English Opening",
+    "eco": "A28",
+    "name": "English Opening: King's English Variation, Four Knights Variation",
+    "pgn": "1. c4 e5 2. Nc3 Nf6 3. Nf3 Nc6"
+  },
+  {
+    "id": "english-opening-symmetrical-variation-four-knights-variation",
+    "familyId": "english-opening",
+    "family": "English Opening",
+    "eco": "A35",
+    "name": "English Opening: Symmetrical Variation, Four Knights Variation",
+    "pgn": "1. c4 c5 2. Nf3 Nf6 3. Nc3 Nc6"
+  },
+  {
+    "id": "english-opening-king-s-english-variation-botvinnik-system",
+    "familyId": "english-opening",
+    "family": "English Opening",
+    "eco": "A26",
+    "name": "English Opening: King's English Variation, Botvinnik System",
+    "pgn": "1. c4 e5 2. Nc3 Nc6 3. g3 g6 4. Bg2 Bg7 5. d3 d6 6. e4"
+  },
+  {
+    "id": "scotch-game-classical-variation",
+    "familyId": "scotch-game",
+    "family": "Scotch Game",
+    "eco": "C45",
+    "name": "Scotch Game: Classical Variation",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Bc5"
+  },
+  {
+    "id": "scotch-game-schmidt-variation",
+    "familyId": "scotch-game",
+    "family": "Scotch Game",
+    "eco": "C45",
+    "name": "Scotch Game: Schmidt Variation",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Nf6"
+  },
+  {
+    "id": "scotch-game-goring-gambit",
+    "familyId": "scotch-game",
+    "family": "Scotch Game",
+    "eco": "C44",
+    "name": "Scotch Game: Göring Gambit",
+    "pgn": "1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. c3"
+  },
+  {
+    "id": "london-system",
+    "familyId": "london-system",
+    "family": "London System",
+    "eco": "A48",
+    "name": "London System",
+    "pgn": "1. d4 Nf6 2. Nf3 g6 3. Bf4"
+  }
+]

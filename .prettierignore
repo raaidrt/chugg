@@ -1,0 +1,8 @@
+node_modules
+dist
+package-lock.json
+src/data/catalog.ts
+public/piece
+scripts/catalog-counts.json
+scripts/catalog-selection.json
+scripts/catalog-sources.json

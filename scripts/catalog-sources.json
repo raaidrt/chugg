@@ -1,0 +1,64 @@
+{
+  "openingCommit": "4b8622759e7ae6f93f011cc6c83a3823401ab45e",
+  "openingLicense": "CC0-1.0",
+  "openingTables": [
+    {
+      "filename": "a.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/4b8622759e7ae6f93f011cc6c83a3823401ab45e/a.tsv",
+      "sha256": "41722fa3d44f294357326fe2ca1b956d9e56490b30efcfa68db61114c9df7e10"
+    },
+    {
+      "filename": "b.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/4b8622759e7ae6f93f011cc6c83a3823401ab45e/b.tsv",
+      "sha256": "310f0997d5a26ac6c9abfabac028e47e78f24356a6ba322cfffbf8f5a3f88d25"
+    },
+    {
+      "filename": "c.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/4b8622759e7ae6f93f011cc6c83a3823401ab45e/c.tsv",
+      "sha256": "b2e64f32e42e6418b327d03a55af65f3a18e762f7cbc0efffc7e9d1ed3aa7343"
+    },
+    {
+      "filename": "d.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/4b8622759e7ae6f93f011cc6c83a3823401ab45e/d.tsv",
+      "sha256": "58cad40b886bd499717eabcce281d4bfcf00eeadbdc00552f42042cf4aac50d2"
+    },
+    {
+      "filename": "e.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/4b8622759e7ae6f93f011cc6c83a3823401ab45e/e.tsv",
+      "sha256": "f1f8494f488f660e284f23527d5acfbeccdbbc3acc76e74f05d125f39d2f8a74"
+    }
+  ],
+  "popularitySource": "The Week in Chess 1600\u20131603 (2025)",
+  "popularityDescription": "Tournament sample from TWIC issues 1600\u20131603. Counts assign each game to its longest matching drill move order; unsupported lines and transpositions can be missed. These are not online rapid popularity estimates.",
+  "retrievedAt": "2026-09-11",
+  "gameArchives": [
+    {
+      "filename": "twic1600.pgn",
+      "url": "https://theweekinchess.com/zips/twic1600g.zip",
+      "sha256": "9abfe82dd2ed4d7bb963af6af4ba42b7e48c400fa553af6dec99c2d15619e254",
+      "recordedDateMin": "2025.04.24",
+      "recordedDateMax": "2025.07.07"
+    },
+    {
+      "filename": "twic1601.pgn",
+      "url": "https://theweekinchess.com/zips/twic1601g.zip",
+      "sha256": "c5fda2ad6ddb9d76496e746f5a22668056c39383143da3d471314e6db539cf6b",
+      "recordedDateMin": "2025.06.28",
+      "recordedDateMax": "2025.07.14"
+    },
+    {
+      "filename": "twic1602.pgn",
+      "url": "https://theweekinchess.com/zips/twic1602g.zip",
+      "sha256": "86f614239ea573fb44c45ac41014f4aaccd6cc0dff0d8aaf05d25bd14d5d0902",
+      "recordedDateMin": "2025.07.12",
+      "recordedDateMax": "2025.07.21"
+    },
+    {
+      "filename": "twic1603.pgn",
+      "url": "https://theweekinchess.com/zips/twic1603g.zip",
+      "sha256": "10663dcf79852769433c40d4ea1be6f207a88e90722eb4367ce09fe71dd96d36",
+      "recordedDateMin": "2025.06.25",
+      "recordedDateMax": "2025.07.28"
+    }
+  ]
+}

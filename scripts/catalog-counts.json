@@ -1,0 +1,79 @@
+{
+  "source": "The Week in Chess 1600–1603 (2025)",
+  "description": "Tournament sample from TWIC issues 1600–1603. Counts assign each game to its longest matching drill move order; unsupported lines and transpositions can be missed. These are not online rapid popularity estimates.",
+  "date": "2026-09-11",
+  "method": "longest-exact-mainline-prefix",
+  "totalGames": 34669,
+  "classifiedGames": 8910,
+  "skippedGames": 165,
+  "unclassifiedGames": 25594,
+  "files": [
+    {
+      "filename": "twic1600.pgn",
+      "sha256": "9abfe82dd2ed4d7bb963af6af4ba42b7e48c400fa553af6dec99c2d15619e254",
+      "games": 8895
+    },
+    {
+      "filename": "twic1601.pgn",
+      "sha256": "c5fda2ad6ddb9d76496e746f5a22668056c39383143da3d471314e6db539cf6b",
+      "games": 8513
+    },
+    {
+      "filename": "twic1602.pgn",
+      "sha256": "86f614239ea573fb44c45ac41014f4aaccd6cc0dff0d8aaf05d25bd14d5d0902",
+      "games": 8826
+    },
+    {
+      "filename": "twic1603.pgn",
+      "sha256": "10663dcf79852769433c40d4ea1be6f207a88e90722eb4367ce09fe71dd96d36",
+      "games": 8435
+    }
+  ],
+  "counts": {
+    "italian-game-giuoco-piano": 269,
+    "italian-game-giuoco-pianissimo": 104,
+    "italian-game-giuoco-piano-greco-s-attack": 3,
+    "italian-game-two-knights-defense": 531,
+    "ruy-lopez-berlin-defense": 192,
+    "ruy-lopez-exchange-variation": 63,
+    "ruy-lopez-morphy-defense": 902,
+    "ruy-lopez-marshall-attack": 9,
+    "sicilian-defense-najdorf-variation": 982,
+    "sicilian-defense-dragon-variation": 235,
+    "sicilian-defense-alapin-variation": 424,
+    "sicilian-defense-closed": 595,
+    "sicilian-defense-nyezhmetdinov-rossolimo-attack": 598,
+    "sicilian-defense-accelerated-dragon": 143,
+    "french-defense-advance-variation": 345,
+    "french-defense-exchange-variation": 195,
+    "french-defense-winawer-variation": 208,
+    "french-defense-tarrasch-variation": 423,
+    "caro-kann-defense-advance-variation": 572,
+    "caro-kann-defense-classical-variation": 29,
+    "caro-kann-defense-panov-attack": 95,
+    "caro-kann-defense-exchange-variation": 249,
+    "scandinavian-defense-main-line": 129,
+    "scandinavian-defense-modern-variation": 64,
+    "scandinavian-defense-gubinsky-melts-defense": 71,
+    "queen-s-gambit-declined-exchange-variation": 151,
+    "queen-s-gambit-declined-orthodox-defense": 1,
+    "queen-s-gambit-declined-tarrasch-defense": 43,
+    "queen-s-gambit-accepted-classical-defense": 46,
+    "slav-defense-exchange-variation": 98,
+    "slav-defense-czech-variation": 39,
+    "slav-defense-three-knights-variation": 105,
+    "king-s-indian-defense-orthodox-variation": 82,
+    "king-s-indian-defense-samisch-variation": 44,
+    "king-s-indian-defense-four-pawns-attack": 16,
+    "nimzo-indian-defense-classical-variation": 137,
+    "nimzo-indian-defense-rubinstein-system": 350,
+    "nimzo-indian-defense-samisch-variation": 48,
+    "english-opening-king-s-english-variation-four-knights-variation": 49,
+    "english-opening-symmetrical-variation-four-knights-variation": 7,
+    "english-opening-king-s-english-variation-botvinnik-system": 1,
+    "scotch-game-classical-variation": 58,
+    "scotch-game-schmidt-variation": 143,
+    "scotch-game-goring-gambit": 16,
+    "london-system": 46
+  }
+}

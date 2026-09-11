@@ -1,0 +1,11 @@
+# Device storage and backups
+
+Chugg stores progress in IndexedDB (`chugg`, version 1), independently of the service-worker app cache. The `progress` object store has a compound `[lineId, side]` key. `settings` stores the user's side and opening-family preferences. Every completion updates its counters inside a read/write transaction, so overlapping tabs do not lose increments. Errors propagate to the UI; no memory-only fallback pretends that data was saved.
+
+The JSON backup format is `{ app: "chugg", version: 1, exportedAt, preferences, progress }`. Import validates the complete document before writing, rejecting unexpected fields, malformed identifiers, invalid sides, duplicate compound keys, negative/fractional/excessive counts, and timestamps more than a day ahead. Limits are 2 MiB and 10,000 progress records. Unknown but well-formed line IDs are preserved for compatibility with future or older catalogs. All import writes use one atomic transaction; a failure leaves the original database intact.
+
+Import merges per-line, per-side snapshots. The latest timestamp supplies last-attempt details (local wins ties), while completion and clean-completion counters use their respective maxima. Counters are never added, so repeated imports are idempotent and older backups cannot lower counts. Existing preferences are kept; backup preferences are restored only when none have been saved locally. This conservative merge cannot sum independent practice on two devices: backups are portable snapshots, not an event-based synchronization system.
+
+Progress is scoped to a browser storage origin. A changed domain, another browser/profile, private browsing, clearing website data, or storage eviction can make previous progress unavailable. Export/import is the recovery and device-transfer path. `navigator.storage.persist()` is offered when supported, but never described as a backup guarantee.
+
+Phone instructions were checked against [Apple's Safari web app guide](https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios) and [Google's Android Chrome web app guide](https://support.google.com/chrome/answer/9658361?co=GENIE.Platform%3DAndroid&hl=en-GB). Installation guidance remains available offline because its text is bundled with the app; the external support links require a connection.
