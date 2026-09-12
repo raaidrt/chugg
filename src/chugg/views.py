@@ -155,7 +155,6 @@ def progress_page(records: list[LineProgress], date: Callable[[int], str]) -> st
     total = sum(row["completions"] for row in records)
     clean = sum(row["cleanCompletions"] for row in records)
     unique = len({row["lineId"] for row in records})
-    content = ""
     if records:
         rows: list[str] = []
         for row in sorted(records, key=lambda item: -item["lastCompletedAt"]):
