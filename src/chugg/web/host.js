@@ -48,6 +48,46 @@ async function transaction(mutation) {
   });
 }
 
+/* Morph the existing DOM toward the new markup instead of replacing it, so unchanged
+   elements persist across renders: entrance animations play only on real entry, focus
+   and caret survive, and only what actually changed repaints. */
+function morph(current, next) {
+  if (current.isEqualNode(next)) return;
+  if (current.nodeType !== next.nodeType || current.nodeName !== next.nodeName) {
+    current.replaceWith(next);
+    return;
+  }
+  if (current.nodeType !== Node.ELEMENT_NODE) {
+    current.data = next.data;
+    return;
+  }
+  for (const name of current.getAttributeNames()) {
+    // The browser owns a dialog's open state; showModal reconciles it after the morph.
+    if (!next.hasAttribute(name) && !(name === 'open' && current.localName === 'dialog')) current.removeAttribute(name);
+  }
+  for (const name of next.getAttributeNames()) {
+    if (current.getAttribute(name) !== next.getAttribute(name)) current.setAttribute(name, next.getAttribute(name));
+  }
+  morphChildren(current, next);
+  if (current === document.activeElement) return;
+  // Once a field has been touched its attributes stop driving the live value.
+  if (current instanceof HTMLInputElement && current.type !== 'file') current.value = next.getAttribute('value') ?? '';
+  if (current instanceof HTMLSelectElement) {
+    const marked = current.querySelector('option[selected]');
+    current.selectedIndex = marked ? marked.index : 0;
+  }
+}
+
+function morphChildren(current, next) {
+  const existing = [...current.childNodes];
+  const desired = [...next.childNodes];
+  for (let index = 0; index < desired.length; index += 1) {
+    if (index < existing.length) morph(existing[index], desired[index]);
+    else current.append(desired[index]);
+  }
+  for (const node of existing.slice(desired.length)) node.remove();
+}
+
 window.chuggHost = {
   bind(callback) { dispatch = callback; notify(); },
   render(markup, focus) {
@@ -58,9 +98,11 @@ window.chuggHost = {
     const start = active instanceof HTMLInputElement ? active.selectionStart : null;
     const end = active instanceof HTMLInputElement ? active.selectionEnd : null;
     const hadDialog = Boolean(root.querySelector('dialog[open]'));
-    root.innerHTML = markup;
+    const template = document.createElement('template');
+    template.innerHTML = markup;
+    morphChildren(root, template.content);
     const dialog = root.querySelector('dialog');
-    if (dialog) dialog.showModal();
+    if (dialog && !dialog.open) dialog.showModal();
     if (focus) root.querySelector(focus)?.focus({preventScroll: true});
     else if (action && (!dialog || hadDialog)) {
       const candidates = [...root.querySelectorAll('[data-action]')];
