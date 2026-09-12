@@ -1,0 +1,29 @@
+{
+  "app": "chugg",
+  "version": 1,
+  "exportedAt": 1789182825976,
+  "preferences": {
+    "side": "b",
+    "familyId": "sicilian"
+  },
+  "progress": [
+    {
+      "lineId": "italian-game-giuoco-piano",
+      "side": "b",
+      "completions": 1,
+      "cleanCompletions": 1,
+      "lastCompletedAt": 1700000000002,
+      "lastMistakes": 0,
+      "lastHints": 0
+    },
+    {
+      "lineId": "italian-game-giuoco-piano",
+      "side": "w",
+      "completions": 2,
+      "cleanCompletions": 1,
+      "lastCompletedAt": 1700000000001,
+      "lastMistakes": 0,
+      "lastHints": 0
+    }
+  ]
+}

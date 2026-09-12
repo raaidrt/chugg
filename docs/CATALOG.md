@@ -8,7 +8,7 @@ No explorer, game archive, account, or server is contacted while using the train
 
 `scripts/catalog-selection.json` contains the selected ECO codes, names, and PGN sequences from [Lichess chess-openings](https://github.com/lichess-org/chess-openings/tree/4b8622759e7ae6f93f011cc6c83a3823401ab45e), pinned to commit `4b8622759e7ae6f93f011cc6c83a3823401ab45e`. That dataset is CC0. We selected the shortest upstream sequence for each chosen name; where lengths tie, PGN text determines the choice. There is no invented extension of a named line.
 
-`node scripts/catalog-build.mjs` uses chess.js to validate the PGNs and convert them to UCI moves. It generates `src/data/catalog.ts`, including source metadata and a content-derived catalog version. Stable line IDs are independent of popularity counts. Preserve an ID when only its metadata changes; use a new ID if the actual training sequence changes, so existing progress is not attached to a different drill.
+`uv run chugg catalog-build` uses python-chess to validate the PGNs and convert them to UCI moves. It generates `src/chugg/data/catalog.json`, including source metadata and a content-derived catalog version. Stable line IDs are independent of popularity counts. Preserve an ID when only its metadata changes; use a new ID if the actual training sequence changes, so existing progress is not attached to a different drill.
 
 ## What “popularity” means in this release
 
@@ -37,7 +37,7 @@ Only aggregate counts and source identifiers/checksums are checked in. The sourc
 
 ## Sampling on the device
 
-`src/lib/sampling.ts` filters the eligible catalog, applies a recent-drill cooldown, samples a family, then samples a complete line within that family. It commits to that line before its name is displayed.
+`src/chugg/sampling.py` filters the eligible catalog, applies a recent-drill cooldown, samples a family, then samples a complete line within that family. It commits to that line before its name is displayed.
 
 At both stages, with candidate counts `c`:
 
@@ -48,24 +48,24 @@ P(i) = 0.95 × w(i) / sum(w) + 0.05 / candidateCount
 
 If all candidate counts are zero, sampling is uniform. The 5% exploration component gives unobserved lines a chance. The exponent softens the gap between common and rare openings. Family counts are sums of the exclusive per-drill counts, so adding an unobserved line cannot inflate the family's frequency.
 
-Recent IDs are excluded when at least one eligible alternative exists. If every eligible drill is recent, the sampler uses the full filtered pool. Within a still-eligible family, cooldown does not temporarily reduce the family's full reference count. An unknown family or empty input returns no result. The optional random-number source supports deterministic tests; production uses `Math.random()`.
+Recent IDs are excluded when at least one eligible alternative exists. If every eligible drill is recent, the sampler uses the full filtered pool. Within a still-eligible family, cooldown does not temporarily reduce the family's full reference count. An unknown family or empty input returns no result. The optional random-number source supports deterministic tests; production uses Python’s `random.random()`.
 
 ## Reproduce the current catalog
 
 With the project's dependencies installed, this uses only checked-in inputs and performs **no network requests**:
 
 ```sh
-node scripts/catalog-build.mjs
-npm test
+uv run chugg catalog-build
+uv run pytest
 ```
 
-The script resolves its input/output paths relative to its own location, so it can run from any working directory. Regenerating from the same selection and counts produces byte-identical catalog output.
+The script resolves its input/output paths relative to the project package, so it can run from any working directory. Regenerating from the same selection and counts produces byte-identical catalog output.
 
-To independently retrieve and verify the original source records, Python 3 and curl are sufficient; Python chess packages are not required:
+To independently retrieve and verify the original source records, the uv-managed project environment and curl are sufficient:
 
 ```sh
-python3 scripts/catalog-fetch.py --directory /tmp/chugg-reference --download
-python3 scripts/catalog-fetch.py --directory /tmp/chugg-reference --rebuild
+uv run scripts/catalog-fetch.py --directory /tmp/chugg-reference --download
+uv run scripts/catalog-fetch.py --directory /tmp/chugg-reference --rebuild
 ```
 
 The first command downloads public source files, checks their fixed SHA-256 checksums, and verifies that every selected name/ECO/PGN row is present in the pinned upstream tables. It fails on changed inputs. The second verifies already downloaded inputs and rebuilds the original measured counts and catalog without network access. `--rebuild` intentionally replaces any later custom counts with the reference snapshot.
@@ -78,7 +78,7 @@ Use standard SAN PGN files containing an `Event` header for each game. The paths
 CATALOG_SOURCE='My rapid reference sample' \
 CATALOG_DESCRIPTION='Standard rapid games; describe the date/rating filters used to produce these files.' \
 CATALOG_DATE='2026-09-11' \
-node scripts/catalog-build.mjs /absolute/path/sample-a.pgn /absolute/path/sample-b.pgn
+uv run chugg catalog-build /absolute/path/sample-a.pgn /absolute/path/sample-b.pgn
 ```
 
 The command replaces `scripts/catalog-counts.json` and regenerates the catalog. Record the actual input cohort in the environment fields; the script does not enforce rating or time-control filters. It hashes each file and reports classified coverage. Source files are read into memory one at a time, so preprocess very large archives into manageable PGN files first. Keep your original source files to reproduce a custom cohort. The checked-in source manifest continues to describe the original TWIC reference snapshot.

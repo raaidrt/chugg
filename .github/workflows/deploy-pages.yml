@@ -13,15 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: astral-sh/setup-uv@v6
         with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm test
+          enable-cache: true
+          python-version: '3.14'
+      - run: uv sync --locked
+      - run: uv run basedpyright
+      - run: uv run pytest
       - uses: actions/configure-pages@v5
         id: pages
-      - run: npm run build
+      - run: uv run chugg build
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}/
       - uses: actions/upload-pages-artifact@v3

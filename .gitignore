@@ -4,3 +4,9 @@ dist/
 *.tsbuildinfo
 .DS_Store
 test-results/
+.venv/
+.cache/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/

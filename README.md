@@ -1,72 +1,96 @@
 # Chugg
 
-A client-only chess opening trainer. See the exact variation, play one side from memory, and let Chugg play the other. Built with React, TypeScript, Vite, chess.js, IndexedDB, and a service worker.
+A client-only chess opening trainer written in **Python 3.14**, managed with **uv**, and checked with **basedpyright**. See the exact variation, play one side from memory, and let Chugg play the other.
 
-**[Open Chugg](https://raaidrt.com/chugg/)** — hosted on GitHub Pages, inheriting the account's existing `raaidrt.com` domain. HTTPS is enforced. Use **Install Chugg** in the app for Safari and Android instructions.
+**[Open Chugg](https://raaidrt.com/chugg/)** — hosted on GitHub Pages at the existing origin. Deployment is manual; a local commit does not update the hosted app.
 
 ## Run locally
 
-Use Node 22.12+ and npm.
+Install [uv](https://docs.astral.sh/uv/), then:
 
 ```sh
-npm ci
-npm run dev
+uv sync --locked
+uv run chugg dev
+# http://localhost:5173/
 ```
+
+uv provisions Python 3.14 when needed. No npm installation, Node project, backend, account, or database server is required. basedpyright manages its own JavaScript runtime as a uv dependency.
 
 ```sh
-npm test
-npm run build
-npm run preview
+uv run basedpyright
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest
+uv run chugg build
+uv run chugg preview
+# http://localhost:4173/
 ```
 
-The development server does not install an offline service worker. Test installation/offline behavior using a production build and `npm run preview`, or the deployed HTTPS site.
+`dev` builds and serves a development snapshot without registering a service worker; rerun it after source edits. Use a fresh port if another installed development build already controls that origin. Use `build` followed by `preview` to test offline behavior. The first build downloads the pinned Pyodide runtime, checks every SHA-256 digest, and caches it in `.cache/pyodide/`. Later builds can run offline.
+
+## Runtime and code organization
+
+[Pyodide 314.0.6](https://pyodide.org/en/stable/usage/downloading-and-deploying.html) runs CPython 3.14 directly in the browser. The static distribution bundles the interpreter, standard library, application source, python-chess, catalog, icons, and original CSS. All practice and progress processing happens on the device. There are no runtime third-party requests.
+
+- `src/chugg/models.py`: typed domain and version 1 backup schemas.
+- `trainer.py`, `sampling.py`, `progress.py`: chess/drill state, weighted selection, and backup validation/merging; independent of browser APIs.
+- `app.py`, `views.py`, `dialogs.py`: Python controller and HTML presentation using the existing design and copy.
+- `browser.py`, `storage.py`: typed browser boundary and atomic IndexedDB repository.
+- `web/host.js`: browser primitives for DOM events, transactions, downloads, and service-worker registration. `web/bootstrap.js` loads Python; `web/sw.js` implements the browser-required service worker. These small platform adapters contain no chess, sampling, backup-validation, or UI-rendering rules.
+- `build.py`, `cli.py`, `catalog_build.py`, `classifier.py`, `icons.py`: Python build, preview, and asset tools.
+
+The service worker precaches the entire distribution, including Python and its source archive. Initial assets total approximately **13.2 MiB before HTTP compression**, larger than the former JavaScript app. Subsequent cached loads and drills work without a network. Installation alone does not confirm that caching finished.
 
 ## What is included
 
-- 45 exact named opening lines across 13 families, with curated names/move orders from the Lichess CC0 dataset.
-- Popularity-weighted family-then-variation sampling, softened by exponent 0.7 and 5% exploration; recent lines are excluded when alternatives exist.
-- Real reference counts from TWIC tournament issues 1600–1603. These are tournament-sample frequencies among supported exact move orders, **not** online rapid population estimates.
-- One-tap practice with White or Black chosen randomly for each new drill, a name-first opening reveal, legal-move validation, automatic opponent replies, hints, move history, replay, and library browsing. Replay keeps the same side.
-- Device-only per-side progress, validated JSON export/import, optional persistent-storage request, and Safari/Android installation guidance.
-- Locally bundled Maestro pieces and app icons. No runtime third-party API, account, database server, or analytics.
+- The same 45 exact named opening lines across 13 families, with stable IDs and curated Lichess CC0 names/move orders.
+- Popularity-weighted family-then-variation selection, exponent 0.7, 5% exploration, and recent-line cooldown.
+- TWIC tournament issues 1600–1603 reference counts; tournament-sample frequencies, not online rapid population estimates.
+- Random White/Black assignment for each new drill, one-second name reveal, legal moves, 650 ms opponent replies, hints, move history, replay with the same side, and library browsing.
+- Device-only per-side progress, version 1 JSON export/import, persistent-storage requests, and Safari/Android installation guidance.
+- Original Maestro pieces, interface icons, colors, responsive styling, dialogs, and install icons.
 
-## How it is distributed
+The IndexedDB database remains `chugg`, version 1, with the same compound keys. Existing progress and old backups remain compatible at the same origin. Import uses snapshot maxima and never double-counts repeated imports. Updates wait for **Update Chugg** outside a drill. See [storage details](docs/STORAGE.md).
 
-`npm run build` produces `dist/`: static HTML, JS, CSS, the catalog bundled into JS, images, a manifest, and a service worker. The worker precaches the app and opening assets. Once the service worker has cached the app and opening assets, users can practice without a network. Installation alone does not confirm that caching has finished.
+## Verification
 
-An update waits for the user to select **Update Chugg** outside a drill. Opening IDs remain stable across catalog builds; progress lives separately in IndexedDB and is not replaced with app assets. A stable production origin is important because device storage is scoped to the origin.
+`uv run pytest` includes golden fixtures captured from the former TypeScript app: every FEN, legal move set, and SAN recap across all 45 lines, 500 deterministic selections, and an original exported backup. It also exercises both sides, special chess moves, malformed backups, classifier behavior, and build contracts.
 
-Progress does not automatically sync across devices. Clearing site data or browser eviction can remove it; export a backup. Import merges snapshots conservatively without double-counting repeated imports. See [storage details](docs/STORAGE.md).
-
-## Deploy with GitHub Actions / GitHub Pages
-
-This repository includes a test/build workflow and a manually triggered Pages deployment workflow.
-
-1. Push the repository to GitHub.
-2. Under **Settings → Pages → Build and deployment**, choose **GitHub Actions**.
-3. Under **Actions → Deploy to GitHub Pages**, select **Run workflow** on the branch to deploy.
-4. The deployment action reports the HTTPS URL. This repository inherits the account's custom domain and is published at `https://raaidrt.com/chugg/`.
-
-The workflow obtains the Pages base path and sets `BASE_PATH` during the build. This also updates the manifest scope, service worker, and asset URLs. Test this layout locally with:
+For real IndexedDB transaction checks, run:
 
 ```sh
-BASE_PATH=/chugg/ npm run build
-BASE_PATH=/chugg/ npm run preview
-# Open http://localhost:4173/chugg/
+uv run scripts/browser-tests.py
+# Open http://127.0.0.1:4182/
 ```
 
-Deployments are manual so a normal code push never unexpectedly updates the installed app. The check workflow runs on pushes and pull requests.
+This dedicated test origin is disposable: the harness resets its `chugg` database. It verifies concurrent writes, original backups, idempotent merging, atomic rollback, and unavailable storage. Keep it separate from a personal practice origin. See [verification results](docs/VERIFICATION.md).
 
-## Alternative: Cloudflare Pages
+## Deploy to GitHub Pages
 
-Connect this repository to Cloudflare Pages. Use `npm run build` as the build command, `dist` as the output directory, and Node 22.12+ for the build environment. Leave `BASE_PATH` unset when serving from the domain root. No Pages Functions or Worker is needed. `public/_headers` sets cache behavior for Cloudflare; GitHub Pages ignores this file.
+The check workflow runs Python typing, linting, tests, and static builds on pushes and pull requests. The manually triggered Pages workflow builds and uploads `dist/`.
 
-## Catalog updates
+1. Under **Settings → Pages → Build and deployment**, choose **GitHub Actions**.
+2. Under **Actions → Deploy to GitHub Pages**, select **Run workflow** on the desired branch.
+3. The action obtains the Pages base path and publishes the resulting static files.
 
-See [catalog source, limitations, and regeneration](docs/CATALOG.md). `npm run catalog:build` regenerates the bundled catalog from pinned opening inputs and checked-in aggregate counts. Preparation runs on your laptop/CI; the phone only receives the resulting catalog. The catalog is a list of fixed training sequences, not an engine or an exhaustive tree of all theoretical continuations.
+Test a subpath locally:
 
-## Assets and licensing
+```sh
+BASE_PATH=/chugg/ uv run chugg build
+BASE_PATH=/chugg/ uv run chugg preview
+# http://localhost:4173/chugg/
+```
 
-Maestro is by **sadsnake1**, distributed via Lichess under **CC BY-NC-SA 4.0**. The pieces are included unmodified. This license restricts commercial use of those assets; obtain permission or choose another set before commercial distribution. See [third-party notices](THIRD_PARTY_NOTICES.md) and the in-app Credits page.
+Keep the production origin stable to retain browser storage. For other static hosts, install uv, run `uv sync --locked && uv run chugg build`, and publish `dist/`. Leave `BASE_PATH` unset for a domain root. No server-side Python runtime is required. `public/_headers` supplies Cloudflare cache headers; GitHub Pages ignores it.
 
-Regenerate the install icons with `npm run icons:build`. The Chugg icon is an original SVG mark; it does not reuse Lichess branding.
+## Catalog and assets
+
+```sh
+uv run chugg catalog-build
+uv run chugg icons-build
+uv run ruff format .
+```
+
+Catalog regeneration uses pinned checked-in inputs and makes no network requests. See [catalog sources and regeneration](docs/CATALOG.md). Icon regeneration uses resvg-py and Pillow; normal builds use the checked-in icons.
+
+Maestro is by **sadsnake1**, under **CC BY-NC-SA 4.0**, included unmodified. The migration uses python-chess under **GPL-3.0-or-later**; Pyodide, CPython, and Lucide notices and license texts are also bundled. See [third-party notices](THIRD_PARTY_NOTICES.md) and the in-app Credits page.
