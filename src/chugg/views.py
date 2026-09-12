@@ -10,6 +10,7 @@ import chess
 
 from chugg.catalog import openings
 from chugg.models import LineProgress
+from chugg.sampling import EXPLORATION_MAX, EXPLORATION_MIN
 from chugg.trainer import Drill, notation, player_move_count
 from chugg.ui_types import ButtonAction
 
@@ -50,13 +51,31 @@ def button(
     return f"<button {' '.join(attributes)}>{content}</button>"
 
 
-def home(ready: bool) -> str:
+def home(ready: bool, exploration: float) -> str:
+    percent = round((exploration - EXPLORATION_MIN) / (EXPLORATION_MAX - EXPLORATION_MIN) * 100)
     return f"""
         <main class="home-page">
             {button(icon("Menu", 22), "menu", "icon-button home-menu", label="Open menu")}
             <div class="home-hero">
                 <h1 class="home-title">Chugg</h1>
                 {button("Start", "start", "primary-button start-button", disabled=not ready)}
+                <div class="variety-control">
+                    <input
+                        type="range"
+                        data-action="exploration"
+                        min="{EXPLORATION_MIN}"
+                        max="{EXPLORATION_MAX}"
+                        step="0.05"
+                        value="{exploration:g}"
+                        aria-label="Opening variety"
+                        aria-valuetext="{percent}% random"
+                        {"disabled" if not ready else ""}
+                    />
+                    <div class="variety-labels" aria-hidden="true">
+                        <span>Popular</span>
+                        <span>Random</span>
+                    </div>
+                </div>
             </div>
         </main>
     """

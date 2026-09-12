@@ -7,7 +7,10 @@ from random import random
 from chugg.models import OpeningLine, Side
 
 POPULARITY_EXPONENT = 0.7
-EXPLORATION_SHARE = 0.05
+# The exploration share blends popularity weights with a uniform pick:
+# (1 - alpha) * w / total + alpha / n. The home screen slider spans Popular..Random.
+EXPLORATION_MIN = 0.05
+EXPLORATION_MAX = 0.95
 
 
 def sample_side(rng: Callable[[], float] = random) -> Side:
@@ -19,7 +22,10 @@ def valid_count(value: float) -> float:
 
 
 def weighted_pick[T](
-    items: Sequence[T], get_count: Callable[[T], float], rng: Callable[[], float]
+    items: Sequence[T],
+    get_count: Callable[[T], float],
+    rng: Callable[[], float],
+    exploration: float = EXPLORATION_MIN,
 ) -> T:
     weights = [valid_count(get_count(item)) ** POPULARITY_EXPONENT for item in items]
     total = sum(weights)
@@ -28,7 +34,7 @@ def weighted_pick[T](
         raise ValueError("Sampling RNG must return a number in [0, 1).")
     for item, weight in zip(items, weights, strict=True):
         remaining -= (
-            ((1 - EXPLORATION_SHARE) * weight / total + EXPLORATION_SHARE / len(items))
+            ((1 - exploration) * weight / total + exploration / len(items))
             if total > 0
             else 1 / len(items)
         )
@@ -42,6 +48,7 @@ def sample_opening(
     *,
     family_id: str = "all",
     recent_ids: Sequence[str] = (),
+    exploration: float = EXPLORATION_MIN,
     rng: Callable[[], float] = random,
 ) -> OpeningLine | None:
     filtered = [
@@ -60,5 +67,5 @@ def sample_opening(
     for line in filtered:
         key = line["familyId"]
         counts[key] = counts.get(key, 0) + valid_count(line["popularity"])
-    family = weighted_pick(list(families), lambda key: counts[key], rng)
-    return weighted_pick(families[family], lambda line: line["popularity"], rng)
+    family = weighted_pick(list(families), lambda key: counts[key], rng, exploration)
+    return weighted_pick(families[family], lambda line: line["popularity"], rng, exploration)

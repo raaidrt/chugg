@@ -13,6 +13,7 @@ type Action = Literal[
     "library",
     "progress",
     "start",
+    "exploration",
     "replay",
     "square",
     "hint",

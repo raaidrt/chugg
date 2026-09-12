@@ -31,11 +31,11 @@ def seeded() -> Callable[[], float]:
     return rng
 
 
-def frequencies(lines: list[OpeningLine]) -> dict[str, float]:
+def frequencies(lines: list[OpeningLine], exploration: float = 0.05) -> dict[str, float]:
     rng = seeded()
     counts: Counter[str] = Counter()
     for _ in range(40000):
-        result = sample_opening(lines, rng=rng)
+        result = sample_opening(lines, exploration=exploration, rng=rng)
         assert result
         counts[result["id"]] += 1
     return {key: value / 40000 for key, value in counts.items()}
@@ -54,6 +54,24 @@ def test_softened_frequency_and_exploration() -> None:
     assert observed["common"] == pytest.approx(0.95 * 1000**0.7 / total + 0.05 / 3, abs=0.005)
     assert observed["rare"] == pytest.approx(0.95 * 10**0.7 / total + 0.05 / 3, abs=0.005)
     assert observed["unseen"] > 0.01
+
+
+def test_high_exploration_nearly_uniform() -> None:
+    observed = frequencies(
+        [line("common", "a", 1000), line("rare", "a", 10), line("unseen", "a", 0)],
+        exploration=0.95,
+    )
+    total = 1000**0.7 + 10**0.7
+    assert observed["common"] == pytest.approx(0.05 * 1000**0.7 / total + 0.95 / 3, abs=0.005)
+    assert observed["rare"] == pytest.approx(0.05 * 10**0.7 / total + 0.95 / 3, abs=0.005)
+    assert observed["unseen"] == pytest.approx(0.95 / 3, abs=0.005)
+
+
+def test_exploration_applies_across_families() -> None:
+    # Family choice also blends toward uniform: a family with almost no games
+    # still appears about half the time at maximum exploration.
+    observed = frequencies([line("big", "a", 10000), line("tiny", "b", 1)], exploration=0.95)
+    assert observed["tiny"] > 0.4
 
 
 def test_family_frequency_independent_of_entry_count() -> None:

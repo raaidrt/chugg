@@ -4,6 +4,7 @@ import asyncio
 import json
 from collections.abc import Coroutine
 from datetime import UTC, datetime
+from math import isfinite
 from typing import TypedDict, assert_never, cast
 
 from chugg import dialogs, views
@@ -11,7 +12,7 @@ from chugg.browser import Host, ProxyFactory
 from chugg.catalog import openings
 from chugg.models import LineProgress
 from chugg.progress import now_ms
-from chugg.sampling import sample_opening, sample_side
+from chugg.sampling import EXPLORATION_MAX, EXPLORATION_MIN, sample_opening, sample_side
 from chugg.storage import Repository
 from chugg.trainer import Drill
 from chugg.ui_types import Action, Dialog, Page, Platform, SettingsAction, is_action
@@ -38,6 +39,7 @@ class App:
         self.page: Page = "practice"
         self.progress: list[LineProgress] = []
         self.recent_ids: list[str] = []
+        self.exploration = EXPLORATION_MIN
         self.drill: Drill | None = None
         self.ready = False
         self.dialog: Dialog | None = None
@@ -84,7 +86,7 @@ class App:
                 case "progress":
                     body += views.progress_page(self.progress, self.host.date)
                 case "practice":
-                    body += views.home(self.ready)
+                    body += views.home(self.ready, self.exploration)
                 case _:
                     assert_never(self.page)
         body += '<div class="update-notice">' + self.offline_view() + "</div>"
@@ -213,7 +215,9 @@ class App:
                 line = (
                     next((row for row in openings if row["id"] == value), None)
                     if value
-                    else sample_opening(openings, recent_ids=self.recent_ids)
+                    else sample_opening(
+                        openings, recent_ids=self.recent_ids, exploration=self.exploration
+                    )
                 )
                 if not line:
                     return
@@ -222,6 +226,14 @@ class App:
                 self.dialog, self.page = None, "practice"
                 self.host.scroll()
                 self.schedule()
+            case "exploration":
+                try:
+                    alpha = float(value)
+                except ValueError:
+                    return
+                if not isfinite(alpha):
+                    return
+                self.exploration = min(EXPLORATION_MAX, max(EXPLORATION_MIN, alpha))
             case "replay":
                 if self.drill:
                     self.drill = Drill(self.drill.line, self.drill.side, introducing=False)

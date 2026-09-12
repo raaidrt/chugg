@@ -797,6 +797,25 @@ select {
   font-size: 16px;
   letter-spacing: 0.2px;
 }
+.variety-control {
+  width: min(100%, 220px);
+  display: grid;
+  gap: 4px;
+}
+.variety-control input[type='range'] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--forest);
+  touch-action: pan-x;
+}
+.variety-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .menu-actions {
   display: grid;
   gap: 8px;
