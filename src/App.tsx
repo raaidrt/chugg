@@ -7,20 +7,15 @@ import {
   Check,
   ChevronRight,
   CircleHelp,
-  Layers,
   Search,
-  Settings2,
+  Menu,
   ShieldCheck,
-  Shuffle,
-  Target,
   X,
 } from 'lucide-react';
 import { openings, catalogMetadata } from './data/catalog';
-import { sampleOpening } from './lib/sampling';
-import { loadPreferences, loadProgress, recordResult, savePreferences } from './lib/progress';
-import { playerMoveCount, positionAt } from './lib/trainer';
-import type { DrillResult, LineProgress, OpeningLine, Preferences, Side } from './types';
-import { ChessBoard } from './components/ChessBoard';
+import { sampleOpening, sampleSide } from './lib/sampling';
+import { loadProgress, recordResult } from './lib/progress';
+import type { DrillResult, LineProgress, OpeningLine, Side } from './types';
 import { Trainer } from './components/Trainer';
 import { InstallGuide, isStandalone } from './components/InstallGuide';
 import { DataSettings } from './components/DataSettings';
@@ -29,18 +24,17 @@ import { OfflineStatus } from './components/OfflineStatus';
 import './styles.css';
 
 type Page = 'practice' | 'library' | 'progress';
-const defaultPreferences: Preferences = { side: 'w', familyId: 'all' };
 
 export default function App() {
   const [page, setPage] = useState<Page>('practice');
-  const [preferences, setPreferences] = useState<Preferences>(defaultPreferences);
+  const [side, setSide] = useState<Side>('w');
   const [progress, setProgress] = useState<LineProgress[]>([]);
   const [ready, setReady] = useState(false);
   const [line, setLine] = useState<OpeningLine>(() => sampleOpening(openings) ?? openings[0]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [training, setTraining] = useState(false);
   const [session, setSession] = useState(0);
-  const [dialog, setDialog] = useState<'install' | 'settings' | 'sampling' | null>(null);
+  const [dialog, setDialog] = useState<'menu' | 'install' | 'settings' | 'sampling' | null>(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [libraryFamily, setLibraryFamily] = useState('');
@@ -55,20 +49,9 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([loadPreferences(), loadProgress()])
-      .then(([prefs, saved]) => {
-        if (!active) return;
-        const normalized = {
-          ...prefs,
-          familyId: families.some(([id]) => id === prefs.familyId) ? prefs.familyId : 'all',
-        };
-        setPreferences(normalized);
-        setProgress(saved);
-        setLine(
-          sampleOpening(openings, {
-            familyId: normalized.familyId === 'all' ? undefined : normalized.familyId,
-          }) ?? openings[0],
-        );
+    void loadProgress()
+      .then((saved) => {
+        if (active) setProgress(saved);
       })
       .catch(() => {
         if (active)
@@ -82,45 +65,24 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [families]);
+  }, []);
 
-  function changePreferences(next: Preferences) {
-    setPreferences(next);
-    void savePreferences(next).catch(() =>
-      setError('We couldn’t save your preferences on this device.'),
-    );
-  }
-  function chooseSide(side: Side) {
-    changePreferences({ ...preferences, side });
-  }
-  function shuffle(familyId = preferences.familyId) {
-    const next = sampleOpening(openings, {
-      familyId: familyId === 'all' ? undefined : familyId,
-      recentIds: [line.id, ...recentIds].slice(0, 5),
-    });
-    if (next) {
-      setRecentIds((ids) => [line.id, ...ids].slice(0, 5));
-      setLine(next);
-    }
-  }
-  function selectFamily(familyId: string) {
-    changePreferences({ ...preferences, familyId });
-    shuffle(familyId);
-  }
-  function openLine(item: OpeningLine) {
-    setLine(item);
-    setPage('practice');
-    setTraining(false);
-    window.scrollTo({ top: 0 });
-  }
   function navigate(next: Page) {
     setTraining(false);
     setPage(next);
+    setDialog(null);
     window.scrollTo({ top: 0 });
   }
-  function start() {
+  function start(item?: OpeningLine) {
+    const next = item ?? sampleOpening(openings, { recentIds });
+    if (!next) return;
+    setLine(next);
+    setSide(sampleSide());
+    setRecentIds((ids) => [next.id, ...ids].slice(0, 5));
     setSession((value) => value + 1);
+    setPage('practice');
     setTraining(true);
+    setDialog(null);
     window.scrollTo({ top: 0 });
   }
   const saveResult = useCallback((result: DrillResult) => {
@@ -139,11 +101,7 @@ export default function App() {
   }, []);
   async function refresh() {
     try {
-      const [prefs, saved] = await Promise.all([loadPreferences(), loadProgress()]);
-      setPreferences({
-        ...prefs,
-        familyId: families.some(([id]) => id === prefs.familyId) ? prefs.familyId : 'all',
-      });
+      const saved = await loadProgress();
       setProgress(saved);
     } catch {
       setError('We couldn’t load your imported progress. Please try again.');
@@ -152,11 +110,6 @@ export default function App() {
   const totalSessions = progress.reduce((total, item) => total + item.completions, 0);
   const cleanSessions = progress.reduce((total, item) => total + item.cleanCompletions, 0);
   const uniqueLines = new Set(progress.map((item) => item.lineId)).size;
-  const lineProgress = progress.find(
-    (item) => item.lineId === line.id && item.side === preferences.side,
-  );
-  const moveCount = playerMoveCount(line.moves, preferences.side);
-  const previewGame = useMemo(() => positionAt(line.moves, Math.min(line.moves.length, 6)), [line]);
   const filtered = openings.filter(
     (item) =>
       (!libraryFamily || item.familyId === libraryFamily) &&
@@ -164,43 +117,23 @@ export default function App() {
   );
 
   return (
-    <div className="app-shell">
-      <header className="site-header">
-        <div className="header-inner">
-          <button className="brand" onClick={() => navigate('practice')} aria-label="Chugg home">
-            <span className="brand-icon" aria-hidden="true">
-              ♞
-            </span>
-            chugg<span className="brand-dot">.</span>
-          </button>
-          <nav className="main-nav" aria-label="Main navigation">
-            {(
-              [
-                { id: 'practice', label: 'Practice', icon: Target },
-                { id: 'library', label: 'Openings', icon: BookOpen },
-                { id: 'progress', label: 'Your progress', icon: ChartNoAxesColumnIncreasing },
-              ] as const
-            ).map((item) => (
-              <button
-                key={item.id}
-                className={page === item.id ? 'active' : ''}
-                aria-current={page === item.id ? 'page' : undefined}
-                onClick={() => navigate(item.id)}
-              >
-                <item.icon size={17} />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-          <button
-            className="icon-button settings-button"
-            onClick={() => setDialog('settings')}
-            aria-label="Settings and backups"
-          >
-            <Settings2 size={20} />
-          </button>
-        </div>
-      </header>
+    <div className="app-shell" data-training={training}>
+      {!training && page !== 'practice' && (
+        <header className="site-header">
+          <div className="header-inner">
+            <button className="brand" onClick={() => navigate('practice')} aria-label="Chugg home">
+              Chugg
+            </button>
+            <button
+              className="icon-button"
+              onClick={() => setDialog('menu')}
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+          </div>
+        </header>
+      )}
       {error && (
         <div className="error-banner" role="alert">
           <span>{error}</span>
@@ -215,106 +148,34 @@ export default function App() {
       )}
       {training ? (
         <Trainer
-          key={`${line.id}-${preferences.side}-${session}`}
+          key={`${line.id}-${side}-${session}`}
           line={line}
-          side={preferences.side}
+          side={side}
           onComplete={saveResult}
-          onExit={() => setTraining(false)}
-          onNext={() => {
-            shuffle();
-            start();
-          }}
+          onNext={() => start()}
+          onExit={() => navigate('practice')}
         />
       ) : (
         <>
           {page === 'practice' && (
-            <main className="home-page page-enter">
-              <section className="hero-copy">
-                <h1>Practice openings</h1>
-                <div className="practice-controls">
-                  <div className="control-heading">
-                    <label htmlFor="opening-family">Opening family</label>
-                    <button className="info-button" onClick={() => setDialog('sampling')}>
-                      <CircleHelp size={14} /> How we pick
-                    </button>
-                  </div>
-                  <select
-                    id="opening-family"
-                    value={preferences.familyId}
-                    onChange={(event) => selectFamily(event.target.value)}
-                    disabled={!ready}
-                  >
-                    <option value="all">All opening families</option>
-                    {families.map(([id, name]) => (
-                      <option key={id} value={id}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="field-label" id="side-label">
-                    I’m playing as
-                  </span>
-                  <div className="side-switch" role="group" aria-labelledby="side-label">
-                    <button
-                      aria-pressed={preferences.side === 'w'}
-                      disabled={!ready}
-                      onClick={() => chooseSide('w')}
-                    >
-                      <img src={`${import.meta.env.BASE_URL}piece/maestro/wK.svg`} alt="" /> White{' '}
-                      <span>You move first</span>
-                      {preferences.side === 'w' && <Check size={16} />}
-                    </button>
-                    <button
-                      aria-pressed={preferences.side === 'b'}
-                      disabled={!ready}
-                      onClick={() => chooseSide('b')}
-                    >
-                      <img src={`${import.meta.env.BASE_URL}piece/maestro/bK.svg`} alt="" /> Black{' '}
-                      <span>Chugg moves first</span>
-                      {preferences.side === 'b' && <Check size={16} />}
-                    </button>
-                  </div>
-                  <div className="opening-intro">
-                    <div className="opening-intro-top">
-                      <span className="eyebrow">Up next · {line.eco}</span>
-                      <button
-                        className="text-button shuffle-button"
-                        onClick={() => shuffle()}
-                        disabled={!ready}
-                        aria-label="Pick another opening"
-                      >
-                        <Shuffle size={15} /> Shuffle
-                      </button>
-                    </div>
-                    <h2>{line.name}</h2>
-                    <p>
-                      {moveCount} {moveCount === 1 ? 'move' : 'moves'} to recall <span>·</span>{' '}
-                      {lineProgress?.completions
-                        ? `${lineProgress.completions} ${lineProgress.completions === 1 ? 'practice' : 'practices'}`
-                        : 'Not practiced yet'}
-                    </p>
-                  </div>
-                  <button className="primary-button start-button" disabled={!ready} onClick={start}>
-                    {ready ? 'Practice this opening' : 'Getting your board ready…'}
-                    <ArrowRight size={19} />
-                  </button>
-                </div>
-              </section>
-              <section className="hero-board-section" aria-label="Opening preview">
-                <div className="preview-board">
-                  <ChessBoard
-                    game={previewGame}
-                    side={preferences.side}
-                    lastMove={line.moves[Math.min(line.moves.length, 6) - 1]}
-                  />
-                </div>
-                <div className="preview-caption">
-                  <span>
-                    <Layers size={17} /> Preview after {Math.min(line.moves.length, 6)} half-moves
-                  </span>
-                  <span>{line.eco}</span>
-                </div>
-              </section>
+            <main className="home-page">
+              <button
+                className="icon-button home-menu"
+                onClick={() => setDialog('menu')}
+                aria-label="Open menu"
+              >
+                <Menu size={22} />
+              </button>
+              <div className="home-hero">
+                <h1 className="home-title">Chugg</h1>
+                <button
+                  className="primary-button start-button"
+                  disabled={!ready}
+                  onClick={() => start()}
+                >
+                  Start
+                </button>
+              </div>
             </main>
           )}
           {page === 'library' && (
@@ -350,10 +211,9 @@ export default function App() {
               </div>
               <div className="library-grid">
                 {filtered.map((item) => {
-                  const moveCount = playerMoveCount(item.moves, preferences.side);
                   const learned = progress.some((entry) => entry.lineId === item.id);
                   return (
-                    <button className="library-card" key={item.id} onClick={() => openLine(item)}>
+                    <button className="library-card" key={item.id} onClick={() => start(item)}>
                       <div className="library-card-top">
                         <span className="eco-tag">{item.eco}</span>
                         {learned ? (
@@ -366,10 +226,7 @@ export default function App() {
                       </div>
                       <h2>{item.name}</h2>
                       <div className="library-card-bottom">
-                        <span>
-                          {moveCount} {moveCount === 1 ? 'move' : 'moves'} as{' '}
-                          {preferences.side === 'w' ? 'White' : 'Black'}
-                        </span>
+                        <span>Practice opening</span>
                         <ArrowRight size={18} />
                       </div>
                     </button>
@@ -434,12 +291,7 @@ export default function App() {
                           key={`${item.lineId}-${item.side}`}
                           className="progress-row"
                           disabled={!opening}
-                          onClick={() => {
-                            if (opening) {
-                              chooseSide(item.side);
-                              openLine(opening);
-                            }
-                          }}
+                          onClick={() => opening && start(opening)}
                         >
                           <img
                             src={`${import.meta.env.BASE_URL}piece/maestro/${item.side}N.svg`}
@@ -484,23 +336,34 @@ export default function App() {
               </p>
             </main>
           )}
-          <footer className="site-footer">
-            <div>
-              <span className="footer-brand">chugg.</span>
-            </div>
-            <div className="footer-actions">
-              <OfflineStatus allowUpdate={!training} />
-              <a className="text-button" href={`${import.meta.env.BASE_URL}credits.html`}>
-                Credits
-              </a>
-              {!standalone && (
-                <button className="text-button" onClick={() => setDialog('install')}>
-                  <ArrowDownToLine size={16} /> Install Chugg
-                </button>
-              )}
-            </div>
-          </footer>
         </>
+      )}
+      <div className="update-notice">
+        <OfflineStatus allowUpdate={!training} quiet />
+      </div>
+      {dialog === 'menu' && (
+        <DeviceDialog title="Chugg" id="menu-title" onClose={() => setDialog(null)}>
+          <nav className="menu-actions" aria-label="Main navigation">
+            <button onClick={() => navigate('library')}>
+              <BookOpen size={18} /> Openings
+            </button>
+            <button onClick={() => navigate('progress')}>
+              <ChartNoAxesColumnIncreasing size={18} /> Your progress
+            </button>
+            <button onClick={() => setDialog('settings')}>
+              <ShieldCheck size={18} /> Settings and backups
+            </button>
+            <button onClick={() => setDialog('sampling')}>
+              <CircleHelp size={18} /> How openings are picked
+            </button>
+            {!standalone && (
+              <button onClick={() => setDialog('install')}>
+                <ArrowDownToLine size={18} /> Install Chugg
+              </button>
+            )}
+            <a href={`${import.meta.env.BASE_URL}credits.html`}>Credits</a>
+          </nav>
+        </DeviceDialog>
       )}
       {dialog === 'install' && <InstallGuide onClose={() => setDialog(null)} />}
       {dialog === 'settings' && (
@@ -530,8 +393,8 @@ function SamplingInfo({ onClose }: { onClose: () => void }) {
       </p>
       <p>{catalogMetadata.description}</p>
       <p>
-        Recently shown lines are avoided when other choices are available. Choose a family to focus
-        your practice, or explore every line in the library.
+        Recently shown lines are avoided when other choices are available. White or Black is chosen
+        at random for each new drill. You can also choose an opening from the library.
       </p>
       <a className="device-dialog-help" href={`${import.meta.env.BASE_URL}credits.html`}>
         Catalog sources and credits <ArrowRight size={14} />

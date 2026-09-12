@@ -26,13 +26,13 @@ The development server does not install an offline service worker. Test installa
 - 45 exact named opening lines across 13 families, with curated names/move orders from the Lichess CC0 dataset.
 - Popularity-weighted family-then-variation sampling, softened by exponent 0.7 and 5% exploration; recent lines are excluded when alternatives exist.
 - Real reference counts from TWIC tournament issues 1600–1603. These are tournament-sample frequencies among supported exact move orders, **not** online rapid population estimates.
-- White and Black practice, legal-move validation, automatic opponent replies, hints, complete notation after recall, replay, and library browsing.
+- One-tap practice with White or Black chosen randomly for each new drill, a name-first opening reveal, legal-move validation, automatic opponent replies, hints, move history, replay, and library browsing. Replay keeps the same side.
 - Device-only per-side progress, validated JSON export/import, optional persistent-storage request, and Safari/Android installation guidance.
 - Locally bundled Maestro pieces and app icons. No runtime third-party API, account, database server, or analytics.
 
 ## How it is distributed
 
-`npm run build` produces `dist/`: static HTML, JS, CSS, the catalog bundled into JS, images, a manifest, and a service worker. The worker precaches the app and opening assets. Users can practice without a network once the app says it is ready offline. Installation alone is not the readiness signal.
+`npm run build` produces `dist/`: static HTML, JS, CSS, the catalog bundled into JS, images, a manifest, and a service worker. The worker precaches the app and opening assets. Once the service worker has cached the app and opening assets, users can practice without a network. Installation alone does not confirm that caching has finished.
 
 An update waits for the user to select **Update Chugg** outside a drill. Opening IDs remain stable across catalog builds; progress lives separately in IndexedDB and is not replaced with app assets. A stable production origin is important because device storage is scoped to the origin.
 

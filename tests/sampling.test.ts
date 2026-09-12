@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OpeningLine } from '../src/types';
-import { sampleOpening } from '../src/lib/sampling';
+import { sampleOpening, sampleSide } from '../src/lib/sampling';
 
 function line(id: string, familyId: string, popularity: number): OpeningLine {
   return {
@@ -31,6 +31,15 @@ function frequencies(lines: OpeningLine[], samples = 40000) {
 }
 
 describe('opening sampler', () => {
+  it('assigns White and Black with equal probability across new drills', () => {
+    const rng = seeded();
+    const sides = Array.from({ length: 10000 }, () => sampleSide(rng));
+    const whiteShare = sides.filter((side) => side === 'w').length / sides.length;
+    expect(whiteShare).toBeGreaterThan(0.48);
+    expect(whiteShare).toBeLessThan(0.52);
+    expect(new Set(sides)).toEqual(new Set(['w', 'b']));
+  });
+
   it('softens real frequency within a family while retaining zero-count exploration', () => {
     const observed = frequencies([
       line('common', 'a', 1000),

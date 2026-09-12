@@ -1,4 +1,8 @@
-import type { OpeningLine } from '../types';
+import type { OpeningLine, Side } from '../types';
+
+export function sampleSide(rng: () => number = Math.random): Side {
+  return rng() < 0.5 ? 'w' : 'b';
+}
 
 export const POPULARITY_EXPONENT = 0.7;
 export const EXPLORATION_SHARE = 0.05;

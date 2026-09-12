@@ -61,7 +61,7 @@ export function DataSettings({
     });
   }
   return (
-    <DeviceDialog title="Your practice. Your device." id="data-title" onClose={onClose}>
+    <DeviceDialog title="Settings and backups" id="data-title" onClose={onClose}>
       <div className="device-dialog-icon">
         <HardDrive size={28} />
       </div>

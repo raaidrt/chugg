@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
-export function OfflineStatus({ allowUpdate = true }: { allowUpdate?: boolean }) {
+export function OfflineStatus({
+  allowUpdate = true,
+  quiet = false,
+}: {
+  allowUpdate?: boolean;
+  quiet?: boolean;
+}) {
   const [online, setOnline] = useState(navigator.onLine);
   const [registrationError, setRegistrationError] = useState(false);
   const [previouslyReady, setPreviouslyReady] = useState(false);
@@ -27,6 +33,8 @@ export function OfflineStatus({ allowUpdate = true }: { allowUpdate?: boolean })
       window.removeEventListener('offline', update);
     };
   }, []);
+
+  if (quiet && !needRefresh && !registrationError) return null;
 
   return (
     <div
