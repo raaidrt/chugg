@@ -15,6 +15,9 @@ from chugg.trainer import Drill, notation, player_move_count
 from chugg.ui_types import ButtonAction
 
 ICONS = cast(dict[str, str], json.loads((Path(__file__).parent / "data/icons.json").read_text()))
+# Inline markup paints in the same frame as the surrounding DOM; <img> pieces decoded
+# asynchronously and blinked on every full re-render.
+PIECES = cast(dict[str, str], json.loads((Path(__file__).parent / "data/pieces.json").read_text()))
 e = escape
 
 
@@ -184,7 +187,7 @@ def progress_page(records: list[LineProgress], date: Callable[[int], str]) -> st
             rows.append(
                 button(
                     f"""
-                        <img src="piece/maestro/{row["side"]}N.svg" alt="" />
+                        {PIECES[row["side"] + "N"]}
                         <div>
                             <h3>{e(name)}</h3>
                             <p>{side} · {row["completions"]} {plural} · {row["cleanCompletions"]} clean</p>
@@ -211,7 +214,7 @@ def progress_page(records: list[LineProgress], date: Callable[[int], str]) -> st
         content = f"""
             <div class="empty-state">
                 <div class="empty-piece">
-                    <img src="piece/maestro/wN.svg" alt="" />
+                    {PIECES["wN"]}
                 </div>
                 <h2>No completed openings yet</h2>
                 <p>Complete an opening to start seeing your progress here.</p>
@@ -274,13 +277,7 @@ def chessboard(drill: Drill) -> str:
             name = "empty"
             if piece:
                 color = "w" if piece.color else "b"
-                content = f"""
-                    <img
-                        src="piece/maestro/{color}{piece.symbol().upper()}.svg"
-                        alt=""
-                        draggable="false"
-                    />
-                """
+                content = PIECES[color + piece.symbol().upper()]
                 name = f"{'White' if piece.color else 'Black'} {chess.piece_name(piece.piece_type)}"
             if square in destinations:
                 content += f'<span class="destination{" capture" if piece else ""}"></span>'
@@ -325,7 +322,7 @@ def trainer(drill: Drill) -> str:
     if drill.promotion:
         options = "".join(
             button(
-                f'<img src="piece/maestro/{drill.side}{piece.upper()}.svg" alt=""/>',
+                PIECES[drill.side + piece.upper()],
                 "promote",
                 value=piece,
                 label=f"Promote to {name}",

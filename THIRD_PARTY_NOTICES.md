@@ -8,7 +8,7 @@ Source: https://github.com/lichess-org/lila/tree/423f2aa1e92cf10b3344aeab0b4755d
 
 License: **CC BY-NC-SA 4.0** — https://creativecommons.org/licenses/by-nc-sa/4.0/
 
-The SVG files are bundled without modification. Lichess identifies this license in its [COPYING.md](https://github.com/lichess-org/lila/blob/423f2aa1e92cf10b3344aeab0b4755dbe5a435d4/COPYING.md). The noncommercial restriction applies to these assets; commercial distribution requires suitable permission or a different piece set.
+The SVG artwork is unchanged; the markup is embedded in `src/chugg/data/pieces.json` with internal SVG ids prefixed per piece so it stays valid when inlined repeatedly in one document (`scripts/piece-inline.py` regenerates this from the verified originals). Lichess identifies this license in its [COPYING.md](https://github.com/lichess-org/lila/blob/423f2aa1e92cf10b3344aeab0b4755dbe5a435d4/COPYING.md). The noncommercial restriction applies to these assets; commercial distribution requires suitable permission or a different piece set.
 
 ## Opening data
 

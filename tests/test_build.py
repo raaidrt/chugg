@@ -23,7 +23,6 @@ def test_static_distribution_is_complete_and_scoped(tmp_path: Path, base: str) -
         "runtime/pyodide.asm.wasm",
         "runtime/python_stdlib.zip",
         "app.zip",
-        "piece/maestro/wN.svg",
         "credits.html",
         "manifest.webmanifest",
     ]:
@@ -33,7 +32,10 @@ def test_static_distribution_is_complete_and_scoped(tmp_path: Path, base: str) -
         assert "chugg/app.py" in archive.namelist()
         assert "chess/__init__.py" in archive.namelist()
         assert "chugg/data/catalog.json" in archive.namelist()
+        assert "chugg/data/pieces.json" in archive.namelist()
         assert "browser_contract.py" not in archive.namelist()
+    # Pieces ship inline inside the app bundle, not as separately fetched images.
+    assert not (output / "piece").exists()
     pinned = cast(Runtime, json.loads((ROOT / "src/chugg/data/runtime.json").read_text()))
     for name, digest in pinned["files"].items():
         assert hashlib.sha256((output / "runtime" / name).read_bytes()).hexdigest() == digest
