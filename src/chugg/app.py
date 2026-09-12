@@ -4,7 +4,7 @@ import asyncio
 import json
 from collections.abc import Coroutine
 from datetime import UTC, datetime
-from typing import TypedDict, cast
+from typing import TypedDict, assert_never, cast
 
 from chugg import dialogs, views
 from chugg.browser import Host, ProxyFactory
@@ -14,6 +14,7 @@ from chugg.progress import now_ms
 from chugg.sampling import sample_opening, sample_side
 from chugg.storage import Repository
 from chugg.trainer import Drill
+from chugg.ui_types import Action, Dialog, Page, Platform, SettingsAction, is_action
 
 
 class Environment(TypedDict):
@@ -34,23 +35,23 @@ class App:
         self.repository = Repository(host, proxy)
         self.environment = cast(Environment, json.loads(host.environment()))
         self.offline: OfflineState = {"ready": False, "refresh": False, "error": False}
-        self.page = "practice"
+        self.page: Page = "practice"
         self.progress: list[LineProgress] = []
         self.recent_ids: list[str] = []
         self.drill: Drill | None = None
         self.ready = False
-        self.dialog = ""
+        self.dialog: Dialog | None = None
         self.query = ""
         self.family = ""
         self.error = ""
         self.busy = False
         self.settings_message = ""
         self.settings_error = ""
-        self.platform = "android" if self.environment["android"] else "iphone"
+        self.platform: Platform = "android" if self.environment["android"] else "iphone"
         self.tasks: set[asyncio.Task[None]] = set()
         self.timer: asyncio.Task[None] | None = None
         # Keep the callback alive for the lifetime of the application.
-        self.callback = proxy(self.dispatch)
+        self.callback = proxy(self.dispatch_browser)
         host.bind(self.callback)
 
     def spawn(self, coroutine: Coroutine[object, object, None]) -> asyncio.Task[None]:
@@ -76,12 +77,16 @@ class App:
             body += f'<div class="error-banner" role="alert"><span>{views.e(self.error)}</span>{views.button(views.icon("X", 16), "dismiss", "icon-button", label="Dismiss notification")}</div>'
         if self.drill:
             body += views.trainer(self.drill)
-        elif self.page == "library":
-            body += views.library(self.query, self.family, self.progress)
-        elif self.page == "progress":
-            body += views.progress_page(self.progress, self.host.date)
         else:
-            body += views.home(self.ready)
+            match self.page:
+                case "library":
+                    body += views.library(self.query, self.family, self.progress)
+                case "progress":
+                    body += views.progress_page(self.progress, self.host.date)
+                case "practice":
+                    body += views.home(self.ready)
+                case _:
+                    assert_never(self.page)
         body += '<div class="update-notice">' + self.offline_view() + "</div>"
         if self.dialog:
             match self.dialog:
@@ -109,12 +114,14 @@ class App:
                         "install-title",
                         dialogs.install(self.platform, self.environment["standalone"]),
                     )
-                case _:
+                case "moves":
                     title, identifier, content = (
                         "Moves",
                         "moves-title",
                         views.moves_dialog(self.drill) if self.drill else "",
                     )
+                case _:
+                    assert_never(self.dialog)
             body += dialogs.dialog(title, identifier, content)
         self.host.render(
             f'<div class="app-shell" data-training="{str(self.drill is not None).lower()}">{body}</div>',
@@ -189,13 +196,18 @@ class App:
             self.error = "Your line is complete, but we couldn’t save this result. Export a backup from Settings if device storage is full."
         self.render()
 
-    def dispatch(self, action: str, value: str) -> None:
+    def dispatch_browser(self, action: str, value: str) -> None:
+        # JavaScript supplies untyped strings; ignore unknown actions as before.
+        if is_action(action):
+            self.dispatch(action, value)
+
+    def dispatch(self, action: Action, value: str) -> None:
         # Event handlers stay synchronous; only explicit storage operations launch tasks.
         focus = ""
         match action:
             case "practice" | "library" | "progress":
                 self.cancel_timer()
-                self.drill, self.dialog, self.page = None, "", action
+                self.drill, self.dialog, self.page = None, None, action
                 self.host.scroll()
             case "start":
                 line = (
@@ -207,7 +219,7 @@ class App:
                     return
                 self.drill = Drill(line, sample_side())
                 self.recent_ids = [line["id"], *self.recent_ids][:5]
-                self.dialog, self.page = "", "practice"
+                self.dialog, self.page = None, "practice"
                 self.host.scroll()
                 self.schedule()
             case "replay":
@@ -218,14 +230,18 @@ class App:
                 if not self.drill:
                     return
                 previous_ply = self.drill.ply
-                if action == "square":
-                    self.drill.select(value)
-                elif action == "hint":
-                    self.drill.show_hint()
-                elif action == "cancel-promotion":
-                    self.drill.promotion = None
-                elif self.drill.promotion:
-                    self.drill.attempt(*self.drill.promotion, value)
+                match action:
+                    case "square":
+                        self.drill.select(value)
+                    case "hint":
+                        self.drill.show_hint()
+                    case "cancel-promotion":
+                        self.drill.promotion = None
+                    case "promote":
+                        if self.drill.promotion:
+                            self.drill.attempt(*self.drill.promotion, value)
+                    case _:
+                        assert_never(action)
                 if self.drill.ply != previous_ply:
                     self.schedule()
             case "menu" | "settings" | "sampling" | "install" | "moves":
@@ -236,7 +252,7 @@ class App:
                     self.platform = "android" if self.environment["android"] else "iphone"
             case "close":
                 previous = self.dialog
-                self.dialog = ""
+                self.dialog = None
                 focus = '[data-action="moves"]' if previous == "moves" else '[data-action="menu"]'
             case "search":
                 self.query = value
@@ -245,6 +261,8 @@ class App:
             case "clear-filters":
                 self.query = self.family = ""
             case "platform":
+                if value not in ("iphone", "android"):
+                    return
                 self.platform = value
             case "dismiss":
                 self.error = ""
@@ -261,10 +279,10 @@ class App:
                 if not self.drill:
                     self.spawn(self.update())
             case _:
-                return
+                assert_never(action)
         self.render(focus)
 
-    async def settings_action(self, action: str, value: str) -> None:
+    async def settings_action(self, action: SettingsAction, value: str) -> None:
         self.busy = True
         self.settings_message = self.settings_error = ""
         self.render()
@@ -286,13 +304,15 @@ class App:
                     self.progress = (await self.repository.snapshot())["progress"]
                 except Exception:
                     self.error = "We couldn’t load your imported progress. Please try again."
-            else:
+            elif action == "persist":
                 granted = await self.host.persist()
                 self.settings_message = (
                     "Persistent storage is enabled for Chugg. Keep exporting backups for extra peace of mind."
                     if granted
                     else "This browser hasn’t granted persistent storage. Export a backup to protect your local progress."
                 )
+            else:
+                assert_never(action)
         except Exception as error:
             self.settings_error = str(error) or "Device storage is unavailable. Please try again."
         finally:

@@ -1,6 +1,7 @@
 """Device dialogs with the original copy, controls, and platform instructions."""
 
 from chugg.catalog import metadata
+from chugg.ui_types import Dialog, Page, Platform
 from chugg.views import button, e, icon
 
 
@@ -9,7 +10,7 @@ def dialog(title: str, identifier: str, content: str) -> str:
 
 
 def menu(standalone: bool) -> str:
-    entries = [
+    entries: list[tuple[str, str, Page | Dialog]] = [
         ("BookOpen", "Openings", "library"),
         ("ChartNoAxesColumnIncreasing", "Your progress", "progress"),
         ("ShieldCheck", "Settings and backups", "settings"),
@@ -51,7 +52,7 @@ def settings(busy: bool, message: str, error: str) -> str:
       <p class="device-dialog-small"><a class="device-dialog-help" href="credits.html" target="_blank" rel="noreferrer">Credits &amp; open-source licenses</a></p>"""
 
 
-def install(platform: str, standalone: bool) -> str:
+def install(platform: Platform, standalone: bool) -> str:
     content = f'<div class="device-dialog-icon">{icon("Smartphone", 28)}</div><p>Add Chugg to your home screen.</p>'
     if standalone:
         content += '<p class="device-dialog-notice">You’re already using Chugg as an app.</p>'

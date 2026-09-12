@@ -11,6 +11,7 @@ import chess
 from chugg.catalog import openings
 from chugg.models import LineProgress
 from chugg.trainer import Drill, notation, player_move_count
+from chugg.ui_types import ButtonAction
 
 ICONS = cast(dict[str, str], json.loads((Path(__file__).parent / "data/icons.json").read_text()))
 e = escape
@@ -26,7 +27,7 @@ def icon(name: str, size: int = 18) -> str:
 
 def button(
     content: str,
-    action: str,
+    action: ButtonAction,
     css: str = "",
     *,
     value: str = "",
@@ -50,19 +51,26 @@ def button(
 
 
 def home(ready: bool) -> str:
-    return (
-        f'<main class="home-page">{button(icon("Menu", 22), "menu", "icon-button home-menu", label="Open menu")}<div class="home-hero">'
-        f'<h1 class="home-title">Chugg</h1>{button("Start", "start", "primary-button start-button", disabled=not ready)}</div>'
-        f"</main>"
-    )
+    return f"""
+        <main class="home-page">
+            {button(icon("Menu", 22), "menu", "icon-button home-menu", label="Open menu")}
+            <div class="home-hero">
+                <h1 class="home-title">Chugg</h1>
+                {button("Start", "start", "primary-button start-button", disabled=not ready)}
+            </div>
+        </main>
+    """
 
 
 def header() -> str:
-    return (
-        f'<header class="site-header">'
-        f'<div class="header-inner">{button("Chugg", "practice", "brand", label="Chugg home")}{button(icon("Menu", 20), "menu", "icon-button", label="Open menu")}</div>'
-        f"</header>"
-    )
+    return f"""
+        <header class="site-header">
+            <div class="header-inner">
+                {button("Chugg", "practice", "brand", label="Chugg home")}
+                {button(icon("Menu", 20), "menu", "icon-button", label="Open menu")}
+            </div>
+        </header>
+    """
 
 
 def library(query: str, family: str, progress: list[LineProgress]) -> str:
@@ -87,41 +95,60 @@ def library(query: str, family: str, progress: list[LineProgress]) -> str:
         )
         cards.append(
             button(
-                (
-                    f'<div class="library-card-top">'
-                    f'<span class="eco-tag">{row["eco"]}</span>{status}</div>'
-                    f"<h2>{e(row['name'])}</h2>"
-                    f'<div class="library-card-bottom">'
-                    f"<span>Practice opening</span>{icon('ArrowRight')}</div>"
-                ),
+                f"""
+                    <div class="library-card-top">
+                        <span class="eco-tag">{row["eco"]}</span>
+                        {status}
+                    </div>
+                    <h2>{e(row["name"])}</h2>
+                    <div class="library-card-bottom">
+                        <span>Practice opening</span>
+                        {icon("ArrowRight")}
+                    </div>
+                """,
                 "start",
                 "library-card",
                 value=row["id"],
             )
         )
-    empty = (
-        ""
-        if cards
-        else (
-            f'<div class="empty-state">{icon("Search", 28)}<h2>No matching openings</h2>'
-            f"<p>Try another name or choose a different family.</p>{button('Clear filters', 'clear-filters', 'secondary-button')}</div>"
-        )
-    )
-    return (
-        f'<main class="collection-page page-enter">'
-        f'<div class="page-heading">'
-        f"<div>"
-        f"<h1>Openings</h1>"
-        f"</div>"
-        f'<span class="count-pill">{len(openings)} variations</span>'
-        f"</div>"
-        f'<div class="library-tools">'
-        f'<label class="search-field">{icon("Search")}<input data-action="search" value="{e(query)}" placeholder="Search opening, variation, or ECO…" aria-label="Search openings" />'
-        f"</label>"
-        f'<select data-action="family" aria-label="Filter opening family">{options}</select>'
-        f"</div>"
-        f'<div class="library-grid">{"".join(cards)}</div>{empty}</main>'
-    )
+    empty = ""
+    if not cards:
+        empty = f"""
+            <div class="empty-state">
+                {icon("Search", 28)}
+                <h2>No matching openings</h2>
+                <p>Try another name or choose a different family.</p>
+                {button("Clear filters", "clear-filters", "secondary-button")}
+            </div>
+        """
+    return f"""
+        <main class="collection-page page-enter">
+            <div class="page-heading">
+                <div>
+                    <h1>Openings</h1>
+                </div>
+                <span class="count-pill">{len(openings)} variations</span>
+            </div>
+            <div class="library-tools">
+                <label class="search-field">
+                    {icon("Search")}
+                    <input
+                        data-action="search"
+                        value="{e(query)}"
+                        placeholder="Search opening, variation, or ECO…"
+                        aria-label="Search openings"
+                    />
+                </label>
+                <select data-action="family" aria-label="Filter opening family">
+                    {options}
+                </select>
+            </div>
+            <div class="library-grid">
+                {"".join(cards)}
+            </div>
+            {empty}
+        </main>
+    """
 
 
 def progress_page(records: list[LineProgress], date: Callable[[int], str]) -> str:
@@ -138,59 +165,70 @@ def progress_page(records: list[LineProgress], date: Callable[[int], str]) -> st
             plural = "completion" if row["completions"] == 1 else "completions"
             rows.append(
                 button(
-                    (
-                        f'<img src="piece/maestro/{row["side"]}N.svg" alt=""/>'
-                        f"<div>"
-                        f"<h3>{e(name)}</h3>"
-                        f"<p>{side} · {row['completions']} {plural} · {row['cleanCompletions']} clean</p>"
-                        f"</div>"
-                        f'<span class="progress-date">{e(date(row["lastCompletedAt"]))}</span>{icon("ChevronRight")}'
-                    ),
+                    f"""
+                        <img src="piece/maestro/{row["side"]}N.svg" alt="" />
+                        <div>
+                            <h3>{e(name)}</h3>
+                            <p>{side} · {row["completions"]} {plural} · {row["cleanCompletions"]} clean</p>
+                        </div>
+                        <span class="progress-date">{e(date(row["lastCompletedAt"]))}</span>
+                        {icon("ChevronRight")}
+                    """,
                     "start",
                     "progress-row",
                     value=row["lineId"],
                     disabled=opening is None,
                 )
             )
-        content = (
-            '<section class="recent-practice"><div class="section-heading"><h2>Your practiced lines</h2><span class="small-muted">White and Black tracked separately</span></div>'
-            + "".join(rows)
-            + "</section>"
-        )
+        content = f"""
+            <section class="recent-practice">
+                <div class="section-heading">
+                    <h2>Your practiced lines</h2>
+                    <span class="small-muted">White and Black tracked separately</span>
+                </div>
+                {"".join(rows)}
+            </section>
+        """
     else:
-        content = (
-            f'<div class="empty-state">'
-            f'<div class="empty-piece">'
-            f'<img src="piece/maestro/wN.svg" alt=""/>'
-            f"</div>"
-            f"<h2>No completed openings yet</h2>"
-            f"<p>Complete an opening to start seeing your progress here.</p>{button('Practice ' + icon('ArrowRight'), 'practice', 'primary-button')}</div>"
-        )
-    return (
-        f'<main class="collection-page progress-page page-enter">'
-        f'<div class="page-heading">'
-        f"<div>"
-        f"<h1>Your progress</h1>"
-        f"</div>"
-        f"</div>"
-        f'<div class="stat-grid">'
-        f"<div>"
-        f"<span>Practice sessions</span>"
-        f"<strong>{total}</strong>"
-        f"</div>"
-        f"<div>"
-        f"<span>Variations explored</span>"
-        f"<strong>{unique}<small> / {len(openings)}</small>"
-        f"</strong>"
-        f"</div>"
-        f"<div>"
-        f"<span>Clean recalls</span>"
-        f"<strong>{clean}</strong>"
-        f"<p>Completed without hints or retries</p>"
-        f"</div>"
-        f'</div>{content}<p class="local-data-note">{icon("ShieldCheck", 16)} Your progress stays on this device. {button("Manage backups", "settings", "text-button")}</p>'
-        f"</main>"
-    )
+        content = f"""
+            <div class="empty-state">
+                <div class="empty-piece">
+                    <img src="piece/maestro/wN.svg" alt="" />
+                </div>
+                <h2>No completed openings yet</h2>
+                <p>Complete an opening to start seeing your progress here.</p>
+                {button("Practice " + icon("ArrowRight"), "practice", "primary-button")}
+            </div>
+        """
+    return f"""
+        <main class="collection-page progress-page page-enter">
+            <div class="page-heading">
+                <div>
+                    <h1>Your progress</h1>
+                </div>
+            </div>
+            <div class="stat-grid">
+                <div>
+                    <span>Practice sessions</span>
+                    <strong>{total}</strong>
+                </div>
+                <div>
+                    <span>Variations explored</span>
+                    <strong>{unique}<small> / {len(openings)}</small></strong>
+                </div>
+                <div>
+                    <span>Clean recalls</span>
+                    <strong>{clean}</strong>
+                    <p>Completed without hints or retries</p>
+                </div>
+            </div>
+            {content}
+            <p class="local-data-note">
+                {icon("ShieldCheck", 16)} Your progress stays on this device.
+                {button("Manage backups", "settings", "text-button")}
+            </p>
+        </main>
+    """
 
 
 def chessboard(drill: Drill) -> str:
@@ -218,7 +256,13 @@ def chessboard(drill: Drill) -> str:
             name = "empty"
             if piece:
                 color = "w" if piece.color else "b"
-                content = f'<img src="piece/maestro/{color}{piece.symbol().upper()}.svg" alt="" draggable="false"/>'
+                content = f"""
+                    <img
+                        src="piece/maestro/{color}{piece.symbol().upper()}.svg"
+                        alt=""
+                        draggable="false"
+                    />
+                """
                 name = f"{'White' if piece.color else 'Black'} {chess.piece_name(piece.piece_type)}"
             if square in destinations:
                 content += f'<span class="destination{" capture" if piece else ""}"></span>'
@@ -237,13 +281,26 @@ def chessboard(drill: Drill) -> str:
                     extra=f'data-testid="square-{square}" aria-pressed="{str(square == drill.selected).lower()}"',
                 )
             )
-    return f'<div class="chessboard{" interactive" if interactive else ""}" role="group" aria-label="Chessboard, {"White" if drill.side == "w" else "Black"} at the bottom. Select a piece, then its destination.">{"".join(squares)}</div>'
+    side = "White" if drill.side == "w" else "Black"
+    return f"""
+        <div
+            class="chessboard{" interactive" if interactive else ""}"
+            role="group"
+            aria-label="Chessboard, {side} at the bottom. Select a piece, then its destination."
+        >
+            {"".join(squares)}
+        </div>
+    """
 
 
 def trainer(drill: Drill) -> str:
     line = drill.line
     if drill.introducing:
-        return f'<main class="opening-intro" aria-live="polite"><h1 class="opening-intro-title">{e(line["name"])}</h1></main>'
+        return f"""
+            <main class="opening-intro" aria-live="polite">
+                <h1 class="opening-intro-title">{e(line["name"])}</h1>
+            </main>
+        """
     completed = player_move_count(line["moves"], drill.side, drill.ply)
     total = player_move_count(line["moves"], drill.side)
     promotion = ""
@@ -257,47 +314,80 @@ def trainer(drill: Drill) -> str:
             )
             for piece, name in [("q", "queen"), ("r", "rook"), ("b", "bishop"), ("n", "knight")]
         )
-        promotion = (
-            f'<div class="promotion-overlay">'
-            f'<div class="promotion-card" role="dialog" aria-modal="true" aria-labelledby="promotion-heading">'
-            f'<h3 id="promotion-heading">Promote to</h3>'
-            f'<div class="promotion-options">{options}</div>{button("Cancel", "cancel-promotion", "text-button")}</div>'
-            f"</div>"
-        )
+        promotion = f"""
+            <div class="promotion-overlay">
+                <div
+                    class="promotion-card"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="promotion-heading"
+                >
+                    <h3 id="promotion-heading">Promote to</h3>
+                    <div class="promotion-options">
+                        {options}
+                    </div>
+                    {button("Cancel", "cancel-promotion", "text-button")}
+                </div>
+            </div>
+        """
     if drill.done:
-        actions = (
-            f'<div class="completion-actions">'
-            f'<span class="completion-summary">Done · {drill.mistakes} {"retry" if drill.mistakes == 1 else "retries"} · {drill.hints} {"hint" if drill.hints == 1 else "hints"}</span>{button(icon("RotateCcw", 16), "replay", "secondary-button", label="Play again")}{button("Next " + icon("ArrowRight"), "start", "primary-button next-opening-button")}</div>'
-        )
+        retries = "retry" if drill.mistakes == 1 else "retries"
+        hints = "hint" if drill.hints == 1 else "hints"
+        actions = f"""
+            <div class="completion-actions">
+                <span class="completion-summary">
+                    Done · {drill.mistakes} {retries} · {drill.hints} {hints}
+                </span>
+                {button(icon("RotateCcw", 16), "replay", "secondary-button", label="Play again")}
+                {button("Next " + icon("ArrowRight"), "start", "primary-button next-opening-button")}
+            </div>
+        """
     else:
         message = drill.message if drill.own_turn else "Chugg is moving…"
-        actions = (
-            f'<div class="drill-actions">'
-            f'<div class="feedback{" is-hint" if drill.hint else ""}" aria-live="polite">'
-            f"<p>{e(message)}</p>"
-            f"</div>{button(icon('Lightbulb', 17) + ' Hint', 'hint', 'secondary-button hint-button', disabled=not drill.own_turn or drill.hint)}</div>"
+        hint_button = button(
+            icon("Lightbulb", 17) + " Hint",
+            "hint",
+            "secondary-button hint-button",
+            disabled=not drill.own_turn or drill.hint,
         )
-    return (
-        f'<main class="trainer-page" data-complete="{str(drill.done).lower()}">'
-        f'<header class="training-heading">{button(icon("X", 20), "practice", "icon-button trainer-exit", label="Back to home")}<div class="training-heading-text">'
-        f'<h1 class="training-title" tabindex="-1">{e(line["name"])}</h1>'
-        f'<div class="training-meta">'
-        f'<span class="eco-tag">{line["eco"]}</span>'
-        f"<span>{'White' if drill.side == 'w' else 'Black'}</span>"
-        f'<span class="training-count">{completed}/{total}</span>'
-        f"</div>"
-        f"</div>{button(icon('List', 20), 'moves', 'icon-button trainer-moves', label='View moves')}</header>"
-        f'<section class="training-board-section">'
-        f'<div class="board-wrap">{chessboard(drill)}{promotion}</div>'
-        f"</section>"
-        f'<section class="training-details" aria-label="Drill controls">'
-        f'<div class="progress-track" aria-hidden="true">'
-        f'<span style="width:{completed / total * 100 if total else 0}%">'
-        f"</span>"
-        f"</div>{actions}</section>"
-        f"</main>"
-    )
+        actions = f"""
+            <div class="drill-actions">
+                <div class="feedback{" is-hint" if drill.hint else ""}" aria-live="polite">
+                    <p>{e(message)}</p>
+                </div>
+                {hint_button}
+            </div>
+        """
+    return f"""
+        <main class="trainer-page" data-complete="{str(drill.done).lower()}">
+            <header class="training-heading">
+                {button(icon("X", 20), "practice", "icon-button trainer-exit", label="Back to home")}
+                <div class="training-heading-text">
+                    <h1 class="training-title" tabindex="-1">{e(line["name"])}</h1>
+                    <div class="training-meta">
+                        <span class="eco-tag">{line["eco"]}</span>
+                        <span>{"White" if drill.side == "w" else "Black"}</span>
+                        <span class="training-count">{completed}/{total}</span>
+                    </div>
+                </div>
+                {button(icon("List", 20), "moves", "icon-button trainer-moves", label="View moves")}
+            </header>
+            <section class="training-board-section">
+                <div class="board-wrap">
+                    {chessboard(drill)}
+                    {promotion}
+                </div>
+            </section>
+            <section class="training-details" aria-label="Drill controls">
+                <div class="progress-track" aria-hidden="true">
+                    <span style="width:{completed / total * 100 if total else 0}%"></span>
+                </div>
+                {actions}
+            </section>
+        </main>
+    """
 
 
 def moves_dialog(drill: Drill) -> str:
-    return f'<p class="move-notation">{e(notation(drill.line["moves"][: drill.ply]) if drill.ply else "No moves yet.")}</p>'
+    moves = notation(drill.line["moves"][: drill.ply]) if drill.ply else "No moves yet."
+    return f'<p class="move-notation">{e(moves)}</p>'
