@@ -3,6 +3,7 @@ dist/
 .DS_Store
 .venv/
 .cache/
+.devin/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
@@ -10,4 +11,5 @@ __pycache__/
 
 # Local agent research and generated artifacts
 analysis/
+explore/
 /Claude outputs/
