@@ -209,6 +209,33 @@ select {
 .interactive .square:hover {
   filter: brightness(1.03);
 }
+.chessboard.interactive {
+  touch-action: none;
+}
+.square[data-draggable] {
+  cursor: grab;
+}
+body.dragging-piece,
+body.dragging-piece .square {
+  cursor: grabbing;
+}
+.square.drag-hover {
+  box-shadow: inset 0 0 0 3px #587047;
+}
+.square.drag-origin .piece {
+  opacity: 0.35;
+}
+.drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.drag-ghost .piece {
+  width: 100%;
+  height: 100%;
+}
 .rank-label,
 .file-label {
   position: absolute;
@@ -929,6 +956,7 @@ select {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 .training-title:focus {
   outline: none;

@@ -129,7 +129,85 @@ window.chuggHost = {
     else await registration?.update();
   }
 };
+/* Piece dragging: a press that travels beyond a small threshold starts a drag, while taps
+   keep reaching the click path unchanged. The host only reports the squares involved;
+   Python owns selection, legality, and promotion rules. */
+let drag = null;
+let ignoreClick = false;
+const squareAt = (x, y) => {
+  const element = document.elementFromPoint(x, y);
+  return element instanceof Element ? element.closest('.square') : null;
+};
+const clearDrag = session => {
+  session.ghost?.remove();
+  session.hover?.classList.remove('drag-hover');
+  session.source.classList.remove('drag-origin');
+  document.body.classList.remove('dragging-piece');
+};
+document.addEventListener('pointerdown', event => {
+  ignoreClick = false;
+  if (drag || event.button !== 0 || !(event.target instanceof Element)) return;
+  const square = event.target.closest('.square[data-draggable]');
+  if (square) {
+    drag = {
+      pointer: event.pointerId,
+      source: square,
+      x: event.clientX,
+      y: event.clientY,
+      ghost: null,
+      hover: null,
+    };
+  }
+});
+document.addEventListener('pointermove', event => {
+  if (!drag || event.pointerId !== drag.pointer) return;
+  if (!drag.ghost) {
+    if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 7) return;
+    drag.source.closest('.chessboard')?.setPointerCapture(drag.pointer);
+    if (drag.source.getAttribute('aria-pressed') !== 'true') {
+      dispatch('square', drag.source.dataset.value || '');
+    }
+    const piece = drag.source.querySelector('.piece');
+    const box = drag.source.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.className = 'drag-ghost';
+    ghost.style.width = `${box.width}px`;
+    ghost.style.height = `${box.height}px`;
+    if (piece) ghost.append(piece.cloneNode(true));
+    document.body.append(ghost);
+    drag.ghost = ghost;
+    drag.source.classList.add('drag-origin');
+    document.body.classList.add('dragging-piece');
+  }
+  drag.ghost.style.transform = `translate(${event.clientX}px, ${event.clientY}px) translate(-50%, -62%)`;
+  const over = squareAt(event.clientX, event.clientY);
+  if (over !== drag.hover) {
+    drag.hover?.classList.remove('drag-hover');
+    over?.classList.add('drag-hover');
+    drag.hover = over;
+  }
+});
+document.addEventListener('pointerup', event => {
+  if (!drag || event.pointerId !== drag.pointer) return;
+  const session = drag;
+  drag = null;
+  if (!session.ghost) return;
+  ignoreClick = true;
+  const target = squareAt(event.clientX, event.clientY);
+  clearDrag(session);
+  if (target && target !== session.source) {
+    dispatch('move', `${session.source.dataset.value}${target.dataset.value}`);
+  }
+});
+document.addEventListener('pointercancel', event => {
+  if (!drag || event.pointerId !== drag.pointer) return;
+  const session = drag;
+  drag = null;
+  clearDrag(session);
+});
 document.addEventListener('click', event => {
+  // A completed drag ends with a trailing click; swallow exactly one real click.
+  if (ignoreClick) {ignoreClick = false; if (event.detail > 0) return;}
   const target = event.target.closest('[data-action]');
   if (!target || target.disabled || target.matches('input, select')) return;
   if (target.dataset.action === 'choose-backup') document.querySelector('input[type=file]').click();

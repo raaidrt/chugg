@@ -16,6 +16,7 @@ type Action = Literal[
     "exploration",
     "replay",
     "square",
+    "move",
     "hint",
     "promote",
     "cancel-promotion",

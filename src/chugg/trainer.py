@@ -113,6 +113,31 @@ class Drill:
             else:
                 self.attempt(self.selected, square)
 
+    def move(self, source: str, destination: str) -> None:
+        """Drag-and-drop equivalent of selecting a piece, then its destination."""
+        if not self.own_turn or self.promotion or source == destination:
+            return
+        try:
+            piece = self.board.piece_at(chess.parse_square(source))
+            landing = chess.parse_square(destination)
+        except ValueError:
+            return
+        if not piece or piece.color != (self.side == "w"):
+            return
+        self.selected = source
+        landed = self.board.piece_at(landing)
+        if landed and landed.color == (self.side == "w"):
+            self.selected = destination
+            return
+        if (
+            piece.piece_type == chess.PAWN
+            and destination[1] in "18"
+            and destination in self.destinations
+        ):
+            self.promotion = (source, destination)
+        else:
+            self.attempt(source, destination)
+
     def show_hint(self) -> None:
         if self.own_turn and not self.hint:
             self.hints += 1

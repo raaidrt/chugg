@@ -285,6 +285,9 @@ def chessboard(drill: Drill) -> str:
                 content += f'<span class="rank-label" aria-hidden="true">{rank}</span>'
             if ri == 7:
                 content += f'<span class="file-label" aria-hidden="true">{file}</span>'
+            markers = f'data-testid="square-{square}" aria-pressed="{str(square == drill.selected).lower()}"'
+            if interactive and piece and piece.color == (drill.side == "w"):
+                markers += ' data-draggable="true"'
             squares.append(
                 button(
                     content,
@@ -293,7 +296,7 @@ def chessboard(drill: Drill) -> str:
                     value=square,
                     label=f"{square}, {name}",
                     disabled=not interactive,
-                    extra=f'data-testid="square-{square}" aria-pressed="{str(square == drill.selected).lower()}"',
+                    extra=markers,
                 )
             )
     side = "White" if drill.side == "w" else "Black"

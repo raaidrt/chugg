@@ -2,7 +2,7 @@ import chess
 import pytest
 
 from chugg.catalog import openings
-from chugg.models import Side
+from chugg.models import OpeningLine, Side
 from chugg.trainer import Drill, check_move, notation, player_move_count, position_at
 
 ITALIAN = ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"]
@@ -71,6 +71,45 @@ def test_all_drills_complete_for_both_sides(side: Side) -> None:
         assert player_move_count(line["moves"], side, drill.ply) == player_move_count(
             line["moves"], side
         )
+
+
+def test_move_covers_drag_and_drop_paths() -> None:
+    drill = Drill(openings[1], "w", introducing=False)
+    drill.move("e2", "e2")
+    drill.move("zz", "e4")
+    drill.move("e7", "e5")
+    assert drill.selected is None and drill.mistakes == 0
+    drill.move("e2", "e5")
+    assert drill.mistakes == 1 and drill.message == "Illegal move."
+    drill.move("e2", "d2")
+    assert drill.selected == "d2" and drill.mistakes == 1
+    drill.move("d2", "d4")
+    assert drill.mistakes == 2 and drill.message == "Not this line. Try again."
+    drill.move("e2", "e4")
+    assert drill.ply == 1 and drill.message == "Correct."
+
+
+def test_move_opens_promotion_picker() -> None:
+    line: OpeningLine = {
+        "id": "test-promotion",
+        "familyId": "test",
+        "family": "Test",
+        "name": "Test promotion",
+        "eco": "A00",
+        "moves": ["a2a4", "b7b5", "a4b5", "a7a6", "b5a6", "c8b7", "a6b7", "g7g6", "b7a8q"],
+        "popularity": 1.0,
+        "description": "",
+    }
+    drill = Drill(line, "w", introducing=False)
+    for uci in line["moves"]:
+        if drill.own_turn:
+            drill.move(uci[:2], uci[2:4])
+            if drill.promotion:
+                assert drill.promotion == ("b7", "a8")
+                drill.attempt(*drill.promotion, uci[4:])
+        else:
+            drill.reply()
+    assert drill.done and drill.mistakes == 0
 
 
 def test_hints_errors_selection_and_odd_endings() -> None:

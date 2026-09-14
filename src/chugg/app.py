@@ -238,13 +238,15 @@ class App:
                 if self.drill:
                     self.drill = Drill(self.drill.line, self.drill.side, introducing=False)
                     self.schedule()
-            case "square" | "hint" | "promote" | "cancel-promotion":
+            case "square" | "move" | "hint" | "promote" | "cancel-promotion":
                 if not self.drill:
                     return
                 previous_ply = self.drill.ply
                 match action:
                     case "square":
                         self.drill.select(value)
+                    case "move":
+                        self.drill.move(value[:2], value[2:4])
                     case "hint":
                         self.drill.show_hint()
                     case "cancel-promotion":
