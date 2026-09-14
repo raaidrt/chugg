@@ -3,8 +3,8 @@
 Verified locally on September 11, 2026, using native CPython 3.14 and browser CPython 3.14 through Pyodide 314.0.6:
 
 - The original 38 TypeScript tests passed before migration.
-- 96 Python tests pass. basedpyright strict reports zero errors and warnings; Ruff lint and formatting checks pass.
-- Golden comparisons match every FEN, complete legal move set, and SAN recap at every ply of all 45 original lines. Five hundred seeded selections with cooldown match the former sampler exactly. Catalog regeneration preserves every field, all stable IDs, and version `1-b8f3863f076d`.
+- 100 Python tests pass. basedpyright strict reports zero errors and warnings; Ruff lint and formatting checks pass.
+- Golden comparisons match every FEN, complete legal move set, and SAN recap at every ply of all 45 original lines. Sampling now weights individual lines rather than family-then-variation, so the former sampler's 500 seeded selections are kept only as a fixture record and are no longer asserted. Catalog regeneration preserves every field, all stable IDs, and version `1-b8f3863f076d`.
 - Every catalog line completes for both White and Black in the Python drill state. Rules tests include castling, captures, en passant, exact promotions, checks, mate notation, illegal alternatives, hints, and odd-length endings.
 - Nine real-browser IndexedDB contracts pass: fresh defaults/preferences, twelve concurrent increments, per-side records, backup roundtrip/idempotence, newer-local-data preservation, importing an original TypeScript backup, validation before writes, forced-write rollback, and unavailable storage. Run `uv run scripts/browser-tests.py` on its dedicated disposable origin.
 - Browser: completed Giuoco Piano as White with two rejected moves and one hint. Completion and progress showed one session, zero clean recalls, and correct move history. Replay retained White and reset drill counters.

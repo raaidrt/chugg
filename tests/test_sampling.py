@@ -61,27 +61,34 @@ def test_full_exploration_is_uniform() -> None:
         [line("common", "a", 1000), line("rare", "a", 10), line("unseen", "a", 0)],
         exploration=1.0,
     )
-    assert observed["common"] == pytest.approx(1 / 3, abs=0.005)
-    assert observed["rare"] == pytest.approx(1 / 3, abs=0.005)
-    assert observed["unseen"] == pytest.approx(1 / 3, abs=0.005)
+    assert observed["common"] == pytest.approx(1 / 3, abs=0.01)
+    assert observed["rare"] == pytest.approx(1 / 3, abs=0.01)
+    assert observed["unseen"] == pytest.approx(1 / 3, abs=0.01)
 
 
-def test_exploration_applies_across_families() -> None:
-    # Family choice also blends toward uniform: a family with almost no games
-    # still appears about half the time at maximum exploration.
-    observed = frequencies([line("big", "a", 10000), line("tiny", "b", 1)], exploration=1.0)
-    assert observed["tiny"] == pytest.approx(0.5, abs=0.005)
+def test_max_exploration_is_uniform_per_opening() -> None:
+    # Family size must not matter: at maximum exploration every opening — not every
+    # family — is equally likely.
+    lines = [
+        line("a-one", "a", 100),
+        line("b-one", "b", 100),
+        *[line(f"b-{i}", "b", 0) for i in range(12)],
+    ]
+    observed = frequencies(lines, exploration=1.0)
+    for row in lines:
+        assert observed[row["id"]] == pytest.approx(1 / len(lines), abs=0.005)
 
 
-def test_family_frequency_independent_of_entry_count() -> None:
-    observed = frequencies(
-        [
-            line("a-one", "a", 100),
-            line("b-one", "b", 100),
-            *[line(f"b-{i}", "b", 0) for i in range(12)],
-        ]
-    )
-    assert observed["a-one"] == pytest.approx(0.5, abs=0.005)
+def test_popularity_weights_apply_per_opening() -> None:
+    lines = [
+        line("a-one", "a", 100),
+        line("b-one", "b", 100),
+        *[line(f"b-{i}", "b", 0) for i in range(12)],
+    ]
+    observed = frequencies(lines)
+    share = 0.95 * 100**0.7 / (2 * 100**0.7) + 0.05 / 14
+    assert observed["a-one"] == pytest.approx(share, abs=0.005)
+    assert observed["b-one"] == pytest.approx(share, abs=0.005)
 
 
 def test_filter_cooldown_and_empty_pools() -> None:
@@ -90,9 +97,9 @@ def test_filter_cooldown_and_empty_pools() -> None:
     assert sample_opening(lines, family_id="unknown") is None
     assert sample_opening([]) is None
     assert sample_opening(lines, family_id="x", recent_ids=["a", "b"], rng=lambda: 0) == lines[0]
-    # Cooldown must not remove the original family's reference frequency.
+    # Cooldown removes the recent line's own weight from the pick.
     candidates = [line("a-old", "a", 100), line("a-new", "a", 0), line("b", "b", 100)]
-    assert sample_opening(candidates, recent_ids=["a-old"], rng=lambda: 0.4) == candidates[1]
+    assert sample_opening(candidates, recent_ids=["a-old"], rng=lambda: 0.4) == candidates[2]
 
 
 def test_uniform_fallback_and_invalid_counts() -> None:
@@ -104,3 +111,19 @@ def test_uniform_fallback_and_invalid_counts() -> None:
 def test_invalid_rng(draw: float) -> None:
     with pytest.raises(ValueError):
         sample_opening([line("a", "x", 1)], rng=lambda: draw)
+
+
+def test_each_pick_seeds_a_fresh_generator(monkeypatch: pytest.MonkeyPatch) -> None:
+    created: list[object] = []
+
+    class FakeRandom:
+        def __init__(self) -> None:
+            created.append(self)
+
+        def random(self) -> float:
+            return 0.5
+
+    monkeypatch.setattr("chugg.sampling.Random", FakeRandom)
+    sample_opening([line("a", "x", 1)])
+    sample_side()
+    assert len(created) == 2

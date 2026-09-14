@@ -1,8 +1,8 @@
-"""Family-first popularity sampling with exploration and recent-line cooldown."""
+"""Popularity-weighted opening sampling with exploration and recent-line cooldown."""
 
 from collections.abc import Callable, Sequence
 from math import isfinite
-from random import random
+from random import Random
 
 from chugg.models import OpeningLine, Side
 
@@ -13,8 +13,10 @@ EXPLORATION_MIN = 0.05
 EXPLORATION_MAX = 1.0
 
 
-def sample_side(rng: Callable[[], float] = random) -> Side:
-    return "w" if rng() < 0.5 else "b"
+def sample_side(rng: Callable[[], float] | None = None) -> Side:
+    # A freshly seeded generator per pick: browser runtimes can start the module-level
+    # random sequence from a fixed startup seed, which would replay the same draws.
+    return "w" if (rng or Random().random)() < 0.5 else "b"
 
 
 def valid_count(value: float) -> float:
@@ -49,7 +51,7 @@ def sample_opening(
     family_id: str = "all",
     recent_ids: Sequence[str] = (),
     exploration: float = EXPLORATION_MIN,
-    rng: Callable[[], float] = random,
+    rng: Callable[[], float] | None = None,
 ) -> OpeningLine | None:
     filtered = [
         line
@@ -60,12 +62,9 @@ def sample_opening(
         return None
     recent = set(recent_ids)
     pool = [line for line in filtered if line["id"] not in recent] or filtered
-    families: dict[str, list[OpeningLine]] = {}
-    counts: dict[str, float] = {}
-    for line in pool:
-        families.setdefault(line["familyId"], []).append(line)
-    for line in filtered:
-        key = line["familyId"]
-        counts[key] = counts.get(key, 0) + valid_count(line["popularity"])
-    family = weighted_pick(list(families), lambda key: counts[key], rng, exploration)
-    return weighted_pick(families[family], lambda line: line["popularity"], rng, exploration)
+    return weighted_pick(
+        pool,
+        lambda line: line["popularity"],
+        rng or Random().random,
+        exploration,
+    )

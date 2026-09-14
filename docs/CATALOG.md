@@ -37,18 +37,18 @@ Only aggregate counts and source identifiers/checksums are checked in. The sourc
 
 ## Sampling on the device
 
-`src/chugg/sampling.py` filters the eligible catalog, applies a recent-drill cooldown, samples a family, then samples a complete line within that family. It commits to that line before its name is displayed.
+`src/chugg/sampling.py` filters the eligible catalog, applies a recent-drill cooldown, then samples one complete line. It commits to that line before its name is displayed.
 
-At both stages, with candidate counts `c` and exploration share `α` set by the home-screen slider (0.05–1.00):
+With candidate line counts `c` and exploration share `α` set by the home-screen slider (0.05–1.00):
 
 ```text
 w(i) = max(c(i), 0)^0.7
 P(i) = (1 − α) × w(i) / sum(w) + α / candidateCount
 ```
 
-If all candidate counts are zero, sampling is uniform; at α = 1.00 each stage is uniform regardless of counts. The exploration component gives unobserved lines a chance. The exponent softens the gap between common and rare openings. Family counts are sums of the exclusive per-drill counts, so adding an unobserved line cannot inflate the family's frequency.
+If all candidate counts are zero, sampling is uniform; at α = 1.00 every line is equally likely regardless of counts or family size. The exploration component gives unobserved lines a chance. The exponent softens the gap between common and rare openings. Counts are exclusive per-drill counts, and every candidate is an individual line: how many lines a family contains does not influence any single line's share beyond its own count.
 
-Recent IDs are excluded when at least one eligible alternative exists. If every eligible drill is recent, the sampler uses the full filtered pool. Within a still-eligible family, cooldown does not temporarily reduce the family's full reference count. An unknown family or empty input returns no result. The optional random-number source supports deterministic tests; production uses Python’s `random.random()`.
+Recent IDs are excluded when at least one eligible alternative exists. If every eligible drill is recent, the sampler uses the full filtered pool. An unknown family or empty input returns no result. The optional random-number source supports deterministic tests; production seeds a fresh `random.Random` for every pick so browser sessions cannot replay a fixed startup seed.
 
 ## Reproduce the current catalog
 

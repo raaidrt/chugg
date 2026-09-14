@@ -26,10 +26,10 @@ def menu(standalone: bool) -> str:
 
 
 def sampling() -> str:
-    return f"""<p>Chugg gives common opening families more weight, then picks a variation within the family.
+    return f"""<p>Chugg gives common opening lines more weight.
         We soften the weights so less common lines still get their turn.</p>
       <p>The Popular–Random slider on the home screen sets how adventurous the picks are.
-        At Popular, common lines come up most; at Random, every family and every line within it is equally likely.</p>
+        At Popular, common lines come up most; at Random, every line is equally likely.</p>
       <p>Our catalog uses <strong>{metadata["totalGames"]:,} games</strong> from {e(metadata["source"])}. {metadata["classifiedGames"]:,} games matched a supported training line.</p>
       <p>{e(metadata["description"])}</p>
       <p>Recently shown lines are avoided when other choices are available. White or Black is chosen
