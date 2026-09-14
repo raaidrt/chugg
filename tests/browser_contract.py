@@ -87,13 +87,15 @@ async def run(repository: Repository, controls: Controls) -> str:
     assert (await repository.snapshot())["progress"] == []
     checks.append("A settings write failure rolls back progress writes in the same transaction")
     await controls.reset()
-    await asyncio.gather(*(repository.record_sample("italian-main") for _ in range(6)))
-    await repository.record_sample("sicilian-main")
-    assert (await repository.snapshot())["sampled"] == {"italian-main": 6, "sicilian-main": 1}
+    await asyncio.gather(*(repository.record_sample("italian-main", "w") for _ in range(6)))
+    await repository.record_sample("italian-main", "b")
+    await repository.record_sample("sicilian-main", "b")
+    tally = {"italian-main:w": 6, "italian-main:b": 1, "sicilian-main:b": 1}
+    assert (await repository.snapshot())["sampled"] == tally
     await repository.record(result())
     await repository.import_text(await repository.export())
-    assert (await repository.snapshot())["sampled"] == {"italian-main": 6, "sicilian-main": 1}
-    checks.append("Concurrent draws are tallied; progress writes and backups leave them intact")
+    assert (await repository.snapshot())["sampled"] == tally
+    checks.append("Draws are tallied per side; progress writes and backups leave them intact")
     assert (await repository.reset_samples())["sampled"] == {}
     assert (await repository.snapshot())["sampled"] == {}
     assert len((await repository.snapshot())["progress"]) == 1
