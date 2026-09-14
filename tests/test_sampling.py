@@ -1,10 +1,12 @@
 from collections import Counter
 from collections.abc import Callable
+from random import Random
 
 import pytest
 
+from chugg.catalog import openings
 from chugg.models import OpeningLine
-from chugg.sampling import sample_opening, sample_side
+from chugg.sampling import EXPLORATION_MAX, EXPLORATION_MIN, sample_opening, sample_side
 
 
 def line(identifier: str, family: str, count: float) -> OpeningLine:
@@ -127,3 +129,106 @@ def test_each_pick_seeds_a_fresh_generator(monkeypatch: pytest.MonkeyPatch) -> N
     sample_opening([line("a", "x", 1)])
     sample_side()
     assert len(created) == 2
+
+
+def catalog_sequence(seed: int, exploration: float, draws: int) -> list[str]:
+    # Mirror the app: one seeded generator across picks, five-item line cooldown.
+    rng = Random(seed).random
+    recent: list[str] = []
+    names: list[str] = []
+    for _ in range(draws):
+        selected = sample_opening(openings, recent_ids=recent, exploration=exploration, rng=rng)
+        assert selected
+        names.append(selected["name"])
+        recent = [selected["id"], *recent][:5]
+    return names
+
+
+def test_seeded_catalog_draws_popular() -> None:
+    assert catalog_sequence(42, EXPLORATION_MIN, 25) == [
+        "Caro-Kann Defense: Advance Variation",
+        "Italian Game: Giuoco Piano",
+        "Sicilian Defense: Najdorf Variation",
+        "Sicilian Defense: Dragon Variation",
+        "Queen's Gambit Declined: Tarrasch Defense",
+        "Scandinavian Defense: Main Line",
+        "Nimzo-Indian Defense: Rubinstein System",
+        "Italian Game: Two Knights Defense",
+        "Sicilian Defense: Nyezhmetdinov-Rossolimo Attack",
+        "Italian Game: Giuoco Piano",
+        "Sicilian Defense: Najdorf Variation",
+        "French Defense: Tarrasch Variation",
+        "Ruy Lopez: Berlin Defense",
+        "Ruy Lopez: Marshall Attack",
+        "Caro-Kann Defense: Exchange Variation",
+        "French Defense: Winawer Variation",
+        "Sicilian Defense: Najdorf Variation",
+        "Caro-Kann Defense: Advance Variation",
+        "King's Indian Defense: Orthodox Variation",
+        "Italian Game: Giuoco Piano",
+        "Slav Defense: Three Knights Variation",
+        "Scandinavian Defense: Main Line",
+        "Sicilian Defense: Alapin Variation",
+        "Ruy Lopez: Morphy Defense",
+        "Scotch Game: Schmidt Variation",
+    ]
+
+
+def test_seeded_catalog_draws_max_exploration() -> None:
+    assert catalog_sequence(2025, EXPLORATION_MAX, 25) == [
+        "Queen's Gambit Declined: Exchange Variation",
+        "Slav Defense: Exchange Variation",
+        "Caro-Kann Defense: Panov Attack",
+        "Ruy Lopez: Marshall Attack",
+        "Italian Game: Giuoco Piano",
+        "Scotch Game: Göring Gambit",
+        "Queen's Gambit Declined: Exchange Variation",
+        "Italian Game: Two Knights Defense",
+        "Caro-Kann Defense: Classical Variation",
+        "Italian Game: Giuoco Piano, Greco's Attack",
+        "King's Indian Defense: Four Pawns Attack",
+        "London System",
+        "Ruy Lopez: Exchange Variation",
+        "Italian Game: Giuoco Pianissimo",
+        "Italian Game: Two Knights Defense",
+        "Scandinavian Defense: Modern Variation",
+        "Nimzo-Indian Defense: Classical Variation",
+        "Sicilian Defense: Alapin Variation",
+        "Sicilian Defense: Dragon Variation",
+        "King's Indian Defense: Orthodox Variation",
+        "London System",
+        "Scotch Game: Classical Variation",
+        "Queen's Gambit Declined: Tarrasch Defense",
+        "English Opening: Symmetrical Variation, Four Knights Variation",
+        "French Defense: Advance Variation",
+    ]
+
+
+def test_seeded_catalog_draws_mixed_exploration() -> None:
+    assert catalog_sequence(7, 0.5, 25) == [
+        "Sicilian Defense: Closed",
+        "Ruy Lopez: Morphy Defense",
+        "Queen's Gambit Declined: Exchange Variation",
+        "Italian Game: Two Knights Defense",
+        "Caro-Kann Defense: Panov Attack",
+        "French Defense: Advance Variation",
+        "Italian Game: Giuoco Piano, Greco's Attack",
+        "Caro-Kann Defense: Advance Variation",
+        "Italian Game: Giuoco Pianissimo",
+        "French Defense: Exchange Variation",
+        "Italian Game: Two Knights Defense",
+        "Ruy Lopez: Morphy Defense",
+        "French Defense: Winawer Variation",
+        "Nimzo-Indian Defense: Rubinstein System",
+        "Ruy Lopez: Marshall Attack",
+        "Sicilian Defense: Alapin Variation",
+        "Scandinavian Defense: Gubinsky-Melts Defense",
+        "Scotch Game: Schmidt Variation",
+        "Caro-Kann Defense: Classical Variation",
+        "French Defense: Advance Variation",
+        "Scotch Game: Göring Gambit",
+        "Italian Game: Giuoco Pianissimo",
+        "Nimzo-Indian Defense: Classical Variation",
+        "Sicilian Defense: Alapin Variation",
+        "Ruy Lopez: Morphy Defense",
+    ]
