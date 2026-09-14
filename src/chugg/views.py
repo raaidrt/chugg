@@ -10,7 +10,7 @@ import chess
 
 from chugg.catalog import openings
 from chugg.models import LineProgress
-from chugg.sampling import EXPLORATION_MAX, EXPLORATION_MIN
+from chugg.sampling import EXPLORATION_MAX, EXPLORATION_MIN, SIDES
 from chugg.trainer import Drill, notation, player_move_count
 from chugg.ui_types import ButtonAction
 
@@ -56,13 +56,14 @@ def button(
 
 def home(ready: bool, exploration: float, remaining: int) -> str:
     percent = round((exploration - EXPLORATION_MIN) / (EXPLORATION_MAX - EXPLORATION_MIN) * 100)
-    total = len(openings)
+    # Each opening is a separate drill from each side, and is counted that way.
+    total = len(openings) * len(SIDES)
     status = (
-        "Every opening has had its turn. Reset to see them again."
+        "Every opening has had its turn from both sides. Reset to see them again."
         if not remaining
-        else f"All {total} openings can still come up."
+        else f"All {total} drills can still come up."
         if remaining == total
-        else f"{remaining} of {total} openings left to come up."
+        else f"{remaining} of {total} drills left to come up."
     )
     start = button(
         "Start", "start", "primary-button start-button", disabled=not ready or not remaining

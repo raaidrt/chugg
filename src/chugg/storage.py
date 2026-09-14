@@ -5,23 +5,22 @@ from collections.abc import Callable
 from typing import TypedDict, cast
 
 from chugg.browser import Host, ProxyFactory
-from chugg.models import Backup, DrillResult, LineProgress, Preferences
+from chugg.models import Backup, DrillResult, LineProgress, Preferences, Side
 from chugg.progress import (
     DEFAULT_PREFERENCES,
-    count_sample,
     merge_progress,
     now_ms,
     parse_backup,
     record_result,
     validate_preferences,
-    validate_samples,
 )
+from chugg.sampling import count_sample, validate_samples
 
 
 class Snapshot(TypedDict):
     progress: list[LineProgress]
     preferences: Preferences | None
-    # Draws per line id, so rejection sampling can retire lines already practiced enough.
+    # Draws per line id and side, so rejection sampling can retire a drill already seen.
     sampled: dict[str, int]
 
 
@@ -61,10 +60,10 @@ class Repository:
 
         return await self.mutate(apply)
 
-    async def record_sample(self, line_id: str) -> Snapshot:
+    async def record_sample(self, line_id: str, side: Side) -> Snapshot:
         def apply(snapshot: Snapshot) -> Snapshot:
             tally = validate_samples(snapshot.get("sampled"))
-            return {**snapshot, "sampled": count_sample(line_id, tally)}
+            return {**snapshot, "sampled": count_sample(line_id, side, tally)}
 
         return await self.mutate(apply)
 

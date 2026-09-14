@@ -10,12 +10,14 @@ from typing import TypedDict, assert_never, cast
 from chugg import dialogs, views
 from chugg.browser import Host, ProxyFactory
 from chugg.catalog import openings
-from chugg.models import LineProgress
-from chugg.progress import count_sample, now_ms
+from chugg.models import LineProgress, Side
+from chugg.progress import now_ms
 from chugg.sampling import (
     EXPLORATION_MAX,
     EXPLORATION_MIN,
-    available_lines,
+    count_sample,
+    remaining_draws,
+    sample_available_side,
     sample_opening,
     sample_side,
 )
@@ -95,7 +97,7 @@ class App:
                     body += views.progress_page(self.progress, self.host.date)
                 case "practice":
                     body += views.home(
-                        self.ready, self.exploration, len(available_lines(openings, self.sampled))
+                        self.ready, self.exploration, remaining_draws(openings, self.sampled)
                     )
                 case _:
                     assert_never(self.page)
@@ -208,9 +210,9 @@ class App:
             self.error = "Your line is complete, but we couldn’t save this result. Export a backup from Settings if device storage is full."
         self.render()
 
-    async def save_sample(self, line_id: str) -> None:
+    async def save_sample(self, line_id: str, side: Side) -> None:
         try:
-            self.sampled = (await self.repository.record_sample(line_id))["sampled"]
+            self.sampled = (await self.repository.record_sample(line_id, side))["sampled"]
         except Exception:
             # The drill continues; this draw is only missing from a future session's tally.
             self.error = "We couldn’t save this draw, so it may come up again after a reload."
@@ -254,13 +256,18 @@ class App:
                     self.cancel_timer()
                     self.drill = None
                 else:
-                    self.drill = Drill(line, sample_side())
+                    # A sampled draw takes a side the line has left; a library pick is
+                    # unrestricted because it never counts against the tally.
+                    side = (
+                        sample_side() if value else sample_available_side(line["id"], self.sampled)
+                    )
+                    self.drill = Drill(line, side)
                     self.recent_ids = [line["id"], *self.recent_ids][:5]
                     if not value:
                         # Only sampled draws count. Choosing a line from the library is
                         # the user's own pick, not one of ours to retire.
-                        self.sampled = count_sample(line["id"], self.sampled)
-                        self.spawn(self.save_sample(line["id"]))
+                        self.sampled = count_sample(line["id"], side, self.sampled)
+                        self.spawn(self.save_sample(line["id"], side))
                     self.schedule()
                 self.dialog, self.page = None, "practice"
                 self.host.scroll()

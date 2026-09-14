@@ -6,13 +6,21 @@ import pytest
 
 from chugg.catalog import openings
 from chugg.models import OpeningLine
+from chugg.progress import MAX_COUNT
 from chugg.sampling import (
     EXPLORATION_MAX,
     EXPLORATION_MIN,
     SAMPLE_LIMIT,
+    SIDES,
     available_lines,
+    available_sides,
+    count_sample,
+    remaining_draws,
+    sample_available_side,
+    sample_key,
     sample_opening,
     sample_side,
+    validate_samples,
 )
 
 
@@ -27,6 +35,11 @@ def line(identifier: str, family: str, count: float) -> OpeningLine:
         "moves": ["e2e4"],
         "description": "",
     }
+
+
+def spent(*line_ids: str) -> dict[str, int]:
+    """A tally with both sides of each line drawn to the limit."""
+    return {sample_key(row, side): SAMPLE_LIMIT for row in line_ids for side in SIDES}
 
 
 def seeded() -> Callable[[], float]:
@@ -113,23 +126,23 @@ def test_filter_cooldown_and_empty_pools() -> None:
 
 def test_sampled_lines_are_rejected_until_reset() -> None:
     lines = [line("a", "x", 100), line("b", "x", 1)]
-    sampled = {"a": SAMPLE_LIMIT}
-    # "a" is retired, so every draw returns "b" no matter where the RNG lands.
+    # "a" is retired from both sides, so every draw returns "b" wherever the RNG lands.
     for draw in (0.0, 0.5, 0.999):
-        assert sample_opening(lines, sampled=sampled, rng=lambda: draw) == lines[1]
+        assert sample_opening(lines, sampled=spent("a"), rng=lambda: draw) == lines[1]
     # Partial draws still leave a line in the pool.
-    assert sample_opening(lines, sampled={"a": SAMPLE_LIMIT - 1}, rng=lambda: 0) == lines[0]
-    # Counts above the limit (a shrunken catalog, a tampered store) retire the line too.
-    assert sample_opening(lines, sampled={"a": SAMPLE_LIMIT + 5}, rng=lambda: 0) == lines[1]
+    partial = {sample_key("a", side): SAMPLE_LIMIT - 1 for side in SIDES}
+    assert sample_opening(lines, sampled=partial, rng=lambda: 0) == lines[0]
+    # Counts above the limit (a shrunken catalog, a tampered store) retire the side too.
+    over = {sample_key("a", side): SAMPLE_LIMIT + 5 for side in SIDES}
+    assert sample_opening(lines, sampled=over, rng=lambda: 0) == lines[1]
     # Exhausting the pool yields no pick at all rather than repeating a line.
-    exhausted = {row["id"]: SAMPLE_LIMIT for row in lines}
-    assert sample_opening(lines, sampled=exhausted) is None
+    assert sample_opening(lines, sampled=spent("a", "b")) is None
     assert sample_opening(lines, sampled={}) is not None
 
 
 def test_exhaustion_outranks_the_cooldown() -> None:
     lines = [line("a", "x", 100), line("b", "x", 100), line("c", "x", 100)]
-    retired = {"a": SAMPLE_LIMIT}
+    retired = spent("a")
     # The cooldown yields when it would empty the pool; it never revives a retired line.
     cooled = ["a", "b", "c"]
     assert sample_opening(lines, recent_ids=cooled, rng=lambda: 0) == lines[0]
@@ -140,19 +153,21 @@ def test_exhaustion_outranks_the_cooldown() -> None:
 
 def test_family_filter_applies_before_exhaustion() -> None:
     lines = [line("a", "x", 5), line("b", "y", 5)]
-    assert sample_opening(lines, family_id="x", sampled={"a": SAMPLE_LIMIT}) is None
-    assert sample_opening(lines, family_id="y", sampled={"a": SAMPLE_LIMIT}) == lines[1]
+    assert sample_opening(lines, family_id="x", sampled=spent("a")) is None
+    assert sample_opening(lines, family_id="y", sampled=spent("a")) == lines[1]
 
 
 def test_available_lines_counts_what_can_still_be_drawn() -> None:
     lines = [line("a", "x", 5), line("b", "x", 5), line("c", "x", 5)]
     assert available_lines(lines) == lines
     assert available_lines(lines, {}) == lines
-    assert available_lines(lines, {"a": SAMPLE_LIMIT - 1}) == lines
-    assert available_lines(lines, {"a": SAMPLE_LIMIT, "c": SAMPLE_LIMIT}) == [lines[1]]
-    assert available_lines(lines, {row["id"]: SAMPLE_LIMIT for row in lines}) == []
+    assert available_lines(lines, {sample_key("a", "w"): SAMPLE_LIMIT - 1}) == lines
+    # One spent side is not enough to drop a line from the pool.
+    assert available_lines(lines, {sample_key("a", "w"): SAMPLE_LIMIT}) == lines
+    assert available_lines(lines, spent("a", "c")) == [lines[1]]
+    assert available_lines(lines, spent("a", "b", "c")) == []
     # Unknown ids belong to other catalogs and must not retire anything.
-    assert available_lines(lines, {"gone": SAMPLE_LIMIT}) == lines
+    assert available_lines(lines, spent("gone")) == lines
 
 
 def test_rejection_preserves_the_weighting_of_the_rest() -> None:
@@ -160,7 +175,7 @@ def test_rejection_preserves_the_weighting_of_the_rest() -> None:
     rng = seeded()
     counts: Counter[str] = Counter()
     for _ in range(40000):
-        result = sample_opening(lines, sampled={"retired": SAMPLE_LIMIT}, rng=rng)
+        result = sample_opening(lines, sampled=spent("retired"), rng=rng)
         assert result
         counts[result["id"]] += 1
     total = 1000**0.7 + 10**0.7
@@ -296,3 +311,71 @@ def test_seeded_catalog_draws_mixed_exploration() -> None:
         "Sicilian Defense: Alapin Variation",
         "Ruy Lopez: Morphy Defense",
     ]
+
+
+def test_tally_counts_each_side_separately() -> None:
+    first = count_sample("italian-main", "w", {})
+    assert first == {"italian-main:w": 1}
+    assert count_sample("italian-main", "w", first) == {"italian-main:w": 2}
+    # The same opening from the other side is a different drill with its own count.
+    both = count_sample("italian-main", "b", first)
+    assert both == {"italian-main:w": 1, "italian-main:b": 1}
+    # The source dictionary is never mutated in place; callers hold their own snapshot.
+    assert first == {"italian-main:w": 1}
+    assert count_sample("italian-main", "w", {"italian-main:w": MAX_COUNT}) == {
+        "italian-main:w": MAX_COUNT
+    }
+    with pytest.raises(ValueError, match="Invalid sampled line"):
+        count_sample("not a line id", "w", {})
+
+
+def test_tally_survives_unreadable_storage() -> None:
+    assert validate_samples({"italian-main:w": 2, "italian-main:b": 1.0}) == {
+        "italian-main:w": 2,
+        "italian-main:b": 1,
+    }
+    assert type(validate_samples({"a:w": 2.0})["a:w"]) is int
+    # Anything the sampler could not act on is dropped rather than failing the read.
+    assert validate_samples({"bad id:w": 3, "a:w": -1, "b:w": "2", "c:w": 0}) == {}
+    assert validate_samples({"a:w": MAX_COUNT + 1, "b:w": True}) == {}
+    # Keys without a side predate per-side history and no longer mean anything.
+    assert validate_samples({"italian-main": 2, ":w": 1, "a:x": 1}) == {}
+    unusable: list[object] = [None, [], "sampled", 7]
+    for value in unusable:
+        assert validate_samples(value) == {}
+
+
+def test_a_line_stays_available_until_both_sides_are_spent() -> None:
+    lines = [line("a", "x", 100), line("b", "x", 1)]
+    half = {sample_key("a", "w"): SAMPLE_LIMIT}
+    # White is spent, so "a" can still be drawn — but only as Black.
+    assert available_sides("a", half) == ["b"]
+    assert available_lines(lines, half) == lines
+    assert sample_available_side("a", half) == "b"
+    assert sample_opening(lines, sampled=half, rng=lambda: 0) == lines[0]
+    # Once both sides are spent the line itself drops out of the pool.
+    assert available_sides("a", spent("a")) == []
+    assert available_lines(lines, spent("a")) == [lines[1]]
+    assert sample_opening(lines, sampled=spent("a"), rng=lambda: 0) == lines[1]
+    assert sample_opening(lines, sampled=spent("a", "b")) is None
+
+
+def test_both_sides_stay_random_while_both_remain() -> None:
+    rng = seeded()
+    drawn = [sample_available_side("a", {}, rng) for _ in range(10000)]
+    assert 0.48 < drawn.count("w") / 10000 < 0.52
+    # With one side left there is nothing to randomize.
+    assert {
+        sample_available_side("a", {sample_key("a", "b"): SAMPLE_LIMIT}) for _ in range(20)
+    } == ({"w"})
+
+
+def test_remaining_draws_counts_openings_and_sides() -> None:
+    lines = [line("a", "x", 5), line("b", "x", 5)]
+    assert remaining_draws(lines) == remaining_draws(lines, {}) == 4
+    assert remaining_draws(lines, {sample_key("a", "w"): SAMPLE_LIMIT}) == 3
+    assert remaining_draws(lines, {sample_key("a", "w"): SAMPLE_LIMIT - 1}) == 4
+    assert remaining_draws(lines, spent("a")) == 2
+    assert remaining_draws(lines, spent("a", "b")) == 0
+    # Unknown ids belong to other catalogs and must not retire anything.
+    assert remaining_draws(lines, spent("gone")) == 4
