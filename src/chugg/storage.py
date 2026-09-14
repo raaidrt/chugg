@@ -8,17 +8,21 @@ from chugg.browser import Host, ProxyFactory
 from chugg.models import Backup, DrillResult, LineProgress, Preferences
 from chugg.progress import (
     DEFAULT_PREFERENCES,
+    count_sample,
     merge_progress,
     now_ms,
     parse_backup,
     record_result,
     validate_preferences,
+    validate_samples,
 )
 
 
 class Snapshot(TypedDict):
     progress: list[LineProgress]
     preferences: Preferences | None
+    # Draws per line id, so rejection sampling can retire lines already practiced enough.
+    sampled: dict[str, int]
 
 
 class Repository:
@@ -27,7 +31,8 @@ class Repository:
         self.proxy = proxy
 
     async def snapshot(self) -> Snapshot:
-        return cast(Snapshot, json.loads(await self.host.snapshot()))
+        stored = cast(Snapshot, json.loads(await self.host.snapshot()))
+        return {**stored, "sampled": validate_samples(stored.get("sampled"))}
 
     async def mutate(self, operation: Callable[[Snapshot], Snapshot]) -> Snapshot:
         def apply(text: str) -> str:
@@ -56,6 +61,16 @@ class Repository:
 
         return await self.mutate(apply)
 
+    async def record_sample(self, line_id: str) -> Snapshot:
+        def apply(snapshot: Snapshot) -> Snapshot:
+            tally = validate_samples(snapshot.get("sampled"))
+            return {**snapshot, "sampled": count_sample(line_id, tally)}
+
+        return await self.mutate(apply)
+
+    async def reset_samples(self) -> Snapshot:
+        return await self.mutate(lambda snapshot: {**snapshot, "sampled": {}})
+
     async def save_preferences(self, preferences: Preferences) -> None:
         validated = validate_preferences(preferences)
         await self.mutate(lambda snapshot: {**snapshot, "preferences": validated})
@@ -79,7 +94,9 @@ class Repository:
             for incoming in backup["progress"]:
                 key = incoming["lineId"], incoming["side"]
                 rows[key] = merge_progress(rows.get(key), incoming)
+            # Version 1 backups carry no sampling history; the device keeps its own.
             return {
+                **snapshot,
                 "progress": list(rows.values()),
                 "preferences": snapshot["preferences"] or backup["preferences"],
             }

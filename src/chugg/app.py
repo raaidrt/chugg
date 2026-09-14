@@ -11,8 +11,14 @@ from chugg import dialogs, views
 from chugg.browser import Host, ProxyFactory
 from chugg.catalog import openings
 from chugg.models import LineProgress
-from chugg.progress import now_ms
-from chugg.sampling import EXPLORATION_MAX, EXPLORATION_MIN, sample_opening, sample_side
+from chugg.progress import count_sample, now_ms
+from chugg.sampling import (
+    EXPLORATION_MAX,
+    EXPLORATION_MIN,
+    available_lines,
+    sample_opening,
+    sample_side,
+)
 from chugg.storage import Repository
 from chugg.trainer import Drill
 from chugg.ui_types import Action, Dialog, Page, Platform, SettingsAction, is_action
@@ -38,6 +44,7 @@ class App:
         self.offline: OfflineState = {"ready": False, "refresh": False, "error": False}
         self.page: Page = "practice"
         self.progress: list[LineProgress] = []
+        self.sampled: dict[str, int] = {}
         self.recent_ids: list[str] = []
         self.exploration = EXPLORATION_MIN
         self.drill: Drill | None = None
@@ -65,7 +72,8 @@ class App:
     async def initialize(self) -> None:
         self.render()
         try:
-            self.progress = (await self.repository.snapshot())["progress"]
+            snapshot = await self.repository.snapshot()
+            self.progress, self.sampled = snapshot["progress"], snapshot["sampled"]
         except Exception:
             self.error = (
                 "Device storage is unavailable. You can practice, but progress may not be saved."
@@ -86,7 +94,9 @@ class App:
                 case "progress":
                     body += views.progress_page(self.progress, self.host.date)
                 case "practice":
-                    body += views.home(self.ready, self.exploration)
+                    body += views.home(
+                        self.ready, self.exploration, len(available_lines(openings, self.sampled))
+                    )
                 case _:
                     assert_never(self.page)
         body += '<div class="update-notice">' + self.offline_view() + "</div>"
@@ -198,6 +208,21 @@ class App:
             self.error = "Your line is complete, but we couldn’t save this result. Export a backup from Settings if device storage is full."
         self.render()
 
+    async def save_sample(self, line_id: str) -> None:
+        try:
+            self.sampled = (await self.repository.record_sample(line_id))["sampled"]
+        except Exception:
+            # The drill continues; this draw is only missing from a future session's tally.
+            self.error = "We couldn’t save this draw, so it may come up again after a reload."
+            self.render()
+
+    async def reset_history(self) -> None:
+        try:
+            self.sampled = (await self.repository.reset_samples())["sampled"]
+        except Exception:
+            self.error = "We couldn’t clear your sampling history on this device."
+        self.render()
+
     def dispatch_browser(self, action: str, value: str) -> None:
         # JavaScript supplies untyped strings; ignore unknown actions as before.
         if is_action(action):
@@ -216,16 +241,29 @@ class App:
                     next((row for row in openings if row["id"] == value), None)
                     if value
                     else sample_opening(
-                        openings, recent_ids=self.recent_ids, exploration=self.exploration
+                        openings,
+                        recent_ids=self.recent_ids,
+                        sampled=self.sampled,
+                        exploration=self.exploration,
                     )
                 )
                 if not line:
-                    return
-                self.drill = Drill(line, sample_side())
-                self.recent_ids = [line["id"], *self.recent_ids][:5]
+                    if value:
+                        return
+                    # Every line has been drawn its limit: send them home to reset.
+                    self.cancel_timer()
+                    self.drill = None
+                else:
+                    self.drill = Drill(line, sample_side())
+                    self.recent_ids = [line["id"], *self.recent_ids][:5]
+                    if not value:
+                        # Only sampled draws count. Choosing a line from the library is
+                        # the user's own pick, not one of ours to retire.
+                        self.sampled = count_sample(line["id"], self.sampled)
+                        self.spawn(self.save_sample(line["id"]))
+                    self.schedule()
                 self.dialog, self.page = None, "practice"
                 self.host.scroll()
-                self.schedule()
             case "exploration":
                 try:
                     alpha = float(value)
@@ -234,6 +272,10 @@ class App:
                 if not isfinite(alpha):
                     return
                 self.exploration = min(EXPLORATION_MAX, max(EXPLORATION_MIN, alpha))
+            case "reset-history":
+                self.sampled = {}
+                self.recent_ids = []
+                self.spawn(self.reset_history())
             case "replay":
                 if self.drill:
                     self.drill = Drill(self.drill.line, self.drill.side, introducing=False)

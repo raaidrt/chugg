@@ -32,8 +32,11 @@ def sampling() -> str:
         At Popular, common lines come up most; at Random, every line is equally likely.</p>
       <p>Our catalog uses <strong>{metadata["totalGames"]:,} games</strong> from {e(metadata["source"])}. {metadata["classifiedGames"]:,} games matched a supported training line.</p>
       <p>{e(metadata["description"])}</p>
-      <p>Recently shown lines are avoided when other choices are available. White or Black is chosen
-        at random for each new drill. You can also choose an opening from the library.</p>
+      <p>Recently shown lines are avoided when other choices are available. Once a line has come up
+        twice it is retired from the draw, so the rest of the catalog gets its turn; the home screen
+        shows how many are left and resets the history. Lines you start from the library are your
+        own pick and never count toward that.</p>
+      <p>White or Black is chosen at random for each new drill.</p>
       <a class="device-dialog-help" href="credits.html">Catalog sources and credits {icon("ArrowRight", 14)}</a>
       <div class="device-dialog-section">{button("Got it " + icon("Check", 17), "close", "primary-button full-width")}</div>"""
 

@@ -1,6 +1,6 @@
 """Popularity-weighted opening sampling with exploration and recent-line cooldown."""
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from math import isfinite
 from random import Random
 
@@ -11,6 +11,8 @@ POPULARITY_EXPONENT = 0.7
 # (1 - alpha) * w / total + alpha / n. The home screen slider spans Popular..Random.
 EXPLORATION_MIN = 0.05
 EXPLORATION_MAX = 1.0
+# Rejection sampling retires a line once it has been drawn this many times.
+SAMPLE_LIMIT = 2
 
 
 def sample_side(rng: Callable[[], float] | None = None) -> Side:
@@ -45,11 +47,20 @@ def weighted_pick[T](
     return items[-1]
 
 
+def available_lines(
+    lines: Sequence[OpeningLine], sampled: Mapping[str, int] | None = None
+) -> list[OpeningLine]:
+    """Lines rejection sampling still accepts: drawn fewer than SAMPLE_LIMIT times."""
+    counts = sampled or {}
+    return [line for line in lines if counts.get(line["id"], 0) < SAMPLE_LIMIT]
+
+
 def sample_opening(
     lines: Sequence[OpeningLine],
     *,
     family_id: str = "all",
     recent_ids: Sequence[str] = (),
+    sampled: Mapping[str, int] | None = None,
     exploration: float = EXPLORATION_MIN,
     rng: Callable[[], float] | None = None,
 ) -> OpeningLine | None:
@@ -58,10 +69,14 @@ def sample_opening(
         for line in lines
         if not family_id or family_id == "all" or line["familyId"] == family_id
     ]
-    if not filtered:
+    # Rejecting up front draws from the same distribution as redrawing until a line is
+    # accepted, without the unbounded retries; exhausting every line yields no pick at all.
+    remaining = available_lines(filtered, sampled)
+    if not remaining:
         return None
     recent = set(recent_ids)
-    pool = [line for line in filtered if line["id"] not in recent] or filtered
+    # Unlike the sampling limit, the cooldown yields rather than run out of openings.
+    pool = [line for line in remaining if line["id"] not in recent] or remaining
     return weighted_pick(
         pool,
         lambda line: line["popularity"],

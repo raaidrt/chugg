@@ -6,7 +6,14 @@ import pytest
 
 from chugg.catalog import openings
 from chugg.models import OpeningLine
-from chugg.sampling import EXPLORATION_MAX, EXPLORATION_MIN, sample_opening, sample_side
+from chugg.sampling import (
+    EXPLORATION_MAX,
+    EXPLORATION_MIN,
+    SAMPLE_LIMIT,
+    available_lines,
+    sample_opening,
+    sample_side,
+)
 
 
 def line(identifier: str, family: str, count: float) -> OpeningLine:
@@ -102,6 +109,63 @@ def test_filter_cooldown_and_empty_pools() -> None:
     # Cooldown removes the recent line's own weight from the pick.
     candidates = [line("a-old", "a", 100), line("a-new", "a", 0), line("b", "b", 100)]
     assert sample_opening(candidates, recent_ids=["a-old"], rng=lambda: 0.4) == candidates[2]
+
+
+def test_sampled_lines_are_rejected_until_reset() -> None:
+    lines = [line("a", "x", 100), line("b", "x", 1)]
+    sampled = {"a": SAMPLE_LIMIT}
+    # "a" is retired, so every draw returns "b" no matter where the RNG lands.
+    for draw in (0.0, 0.5, 0.999):
+        assert sample_opening(lines, sampled=sampled, rng=lambda: draw) == lines[1]
+    # Partial draws still leave a line in the pool.
+    assert sample_opening(lines, sampled={"a": SAMPLE_LIMIT - 1}, rng=lambda: 0) == lines[0]
+    # Counts above the limit (a shrunken catalog, a tampered store) retire the line too.
+    assert sample_opening(lines, sampled={"a": SAMPLE_LIMIT + 5}, rng=lambda: 0) == lines[1]
+    # Exhausting the pool yields no pick at all rather than repeating a line.
+    exhausted = {row["id"]: SAMPLE_LIMIT for row in lines}
+    assert sample_opening(lines, sampled=exhausted) is None
+    assert sample_opening(lines, sampled={}) is not None
+
+
+def test_exhaustion_outranks_the_cooldown() -> None:
+    lines = [line("a", "x", 100), line("b", "x", 100), line("c", "x", 100)]
+    retired = {"a": SAMPLE_LIMIT}
+    # The cooldown yields when it would empty the pool; it never revives a retired line.
+    cooled = ["a", "b", "c"]
+    assert sample_opening(lines, recent_ids=cooled, rng=lambda: 0) == lines[0]
+    assert sample_opening(lines, recent_ids=cooled, sampled=retired, rng=lambda: 0) == lines[1]
+    # With "a" retired and "b" on cooldown, only "c" is left to draw.
+    assert sample_opening(lines, recent_ids=["b"], sampled=retired, rng=lambda: 0.9) == lines[2]
+
+
+def test_family_filter_applies_before_exhaustion() -> None:
+    lines = [line("a", "x", 5), line("b", "y", 5)]
+    assert sample_opening(lines, family_id="x", sampled={"a": SAMPLE_LIMIT}) is None
+    assert sample_opening(lines, family_id="y", sampled={"a": SAMPLE_LIMIT}) == lines[1]
+
+
+def test_available_lines_counts_what_can_still_be_drawn() -> None:
+    lines = [line("a", "x", 5), line("b", "x", 5), line("c", "x", 5)]
+    assert available_lines(lines) == lines
+    assert available_lines(lines, {}) == lines
+    assert available_lines(lines, {"a": SAMPLE_LIMIT - 1}) == lines
+    assert available_lines(lines, {"a": SAMPLE_LIMIT, "c": SAMPLE_LIMIT}) == [lines[1]]
+    assert available_lines(lines, {row["id"]: SAMPLE_LIMIT for row in lines}) == []
+    # Unknown ids belong to other catalogs and must not retire anything.
+    assert available_lines(lines, {"gone": SAMPLE_LIMIT}) == lines
+
+
+def test_rejection_preserves_the_weighting_of_the_rest() -> None:
+    lines = [line("common", "a", 1000), line("rare", "a", 10), line("retired", "a", 500)]
+    rng = seeded()
+    counts: Counter[str] = Counter()
+    for _ in range(40000):
+        result = sample_opening(lines, sampled={"retired": SAMPLE_LIMIT}, rng=rng)
+        assert result
+        counts[result["id"]] += 1
+    total = 1000**0.7 + 10**0.7
+    assert counts["retired"] == 0
+    assert counts["common"] / 40000 == pytest.approx(0.95 * 1000**0.7 / total + 0.05 / 2, abs=0.005)
 
 
 def test_uniform_fallback_and_invalid_counts() -> None:

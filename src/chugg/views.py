@@ -54,14 +54,31 @@ def button(
     return f"<button {' '.join(attributes)}>{content}</button>"
 
 
-def home(ready: bool, exploration: float) -> str:
+def home(ready: bool, exploration: float, remaining: int) -> str:
     percent = round((exploration - EXPLORATION_MIN) / (EXPLORATION_MAX - EXPLORATION_MIN) * 100)
+    total = len(openings)
+    status = (
+        "Every opening has had its turn. Reset to see them again."
+        if not remaining
+        else f"All {total} openings can still come up."
+        if remaining == total
+        else f"{remaining} of {total} openings left to come up."
+    )
+    start = button(
+        "Start", "start", "primary-button start-button", disabled=not ready or not remaining
+    )
+    reset = button(
+        icon("RotateCcw", 15) + " Reset history",
+        "reset-history",
+        "text-button reset-button",
+        disabled=not ready or remaining == total,
+    )
     return f"""
         <main class="home-page">
             {button(icon("Menu", 22), "menu", "icon-button home-menu", label="Open menu")}
             <div class="home-hero">
                 <h1 class="home-title">Chugg</h1>
-                {button("Start", "start", "primary-button start-button", disabled=not ready)}
+                {start}
                 <div class="variety-control">
                     <input
                         type="range"
@@ -78,6 +95,10 @@ def home(ready: bool, exploration: float) -> str:
                         <span>Popular</span>
                         <span>Random</span>
                     </div>
+                </div>
+                <div class="history-control">
+                    <p class="history-status" aria-live="polite">{status}</p>
+                    {reset}
                 </div>
             </div>
         </main>

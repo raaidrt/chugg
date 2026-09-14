@@ -160,6 +160,23 @@ def record_result(result: DrillResult, previous: LineProgress | None) -> LinePro
     }
 
 
+def validate_samples(value: object) -> dict[str, int]:
+    """Sanitize the device's sampling tally; unreadable entries are simply forgotten."""
+    if not mapping(value):
+        return {}
+    return {
+        key: int(count)
+        for key, count in value.items()
+        if valid_id(key) and integer(count) and count > 0
+    }
+
+
+def count_sample(line_id: str, counts: dict[str, int]) -> dict[str, int]:
+    if not valid_id(line_id):
+        raise ValueError("Invalid sampled line.")
+    return {**counts, line_id: min(MAX_COUNT, counts.get(line_id, 0) + 1)}
+
+
 def merge_progress(local: LineProgress | None, incoming: LineProgress) -> LineProgress:
     latest = (
         local if local and local["lastCompletedAt"] >= incoming["lastCompletedAt"] else incoming

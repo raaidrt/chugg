@@ -45,6 +45,7 @@ The service worker precaches the entire distribution, including Python and its s
 
 - The same 45 exact named opening lines across 13 families, with stable IDs and curated Lichess CC0 names/move orders.
 - Popularity-weighted line selection, exponent 0.7, an adjustable 5%–100% exploration share, and recent-line cooldown.
+- Rejection sampling that retires a line after two draws, a home-screen count of what is left, and a **Reset history** button. Library picks are yours, not draws, so they never retire a line.
 - TWIC tournament issues 1600–1603 reference counts; tournament-sample frequencies, not online rapid population estimates.
 - Random White/Black assignment for each new drill, one-second name reveal, legal moves, 650 ms opponent replies, hints, move history, replay with the same side, and library browsing.
 - Device-only per-side progress, version 1 JSON export/import, persistent-storage requests, and Safari/Android installation guidance.
@@ -63,7 +64,7 @@ uv run scripts/browser-tests.py
 # Open http://127.0.0.1:4182/
 ```
 
-This dedicated test origin is disposable: the harness resets its `chugg` database. It verifies concurrent writes, original backups, idempotent merging, atomic rollback, and unavailable storage. Keep it separate from a personal practice origin. See [verification results](docs/VERIFICATION.md).
+This dedicated test origin is disposable: the harness resets its `chugg` database. It verifies concurrent writes, original backups, idempotent merging, atomic rollback, sampling-history tallies and resets, and unavailable storage. Keep it separate from a personal practice origin. See [verification results](docs/VERIFICATION.md).
 
 ## Deploy to GitHub Pages
 

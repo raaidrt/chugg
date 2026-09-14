@@ -29,7 +29,7 @@ async def run(repository: Repository, controls: Controls) -> str:
         }
 
     await controls.reset()
-    assert await repository.snapshot() == {"progress": [], "preferences": None}
+    assert await repository.snapshot() == {"progress": [], "preferences": None, "sampled": {}}
     await repository.save_preferences({"side": "b", "familyId": "sicilian"})
     assert (await repository.snapshot())["preferences"] == {"side": "b", "familyId": "sicilian"}
     checks.append("Fresh defaults and preferences persist in IndexedDB")
@@ -86,6 +86,18 @@ async def run(repository: Repository, controls: Controls) -> str:
         controls.failWrites(False)
     assert (await repository.snapshot())["progress"] == []
     checks.append("A settings write failure rolls back progress writes in the same transaction")
+    await controls.reset()
+    await asyncio.gather(*(repository.record_sample("italian-main") for _ in range(6)))
+    await repository.record_sample("sicilian-main")
+    assert (await repository.snapshot())["sampled"] == {"italian-main": 6, "sicilian-main": 1}
+    await repository.record(result())
+    await repository.import_text(await repository.export())
+    assert (await repository.snapshot())["sampled"] == {"italian-main": 6, "sicilian-main": 1}
+    checks.append("Concurrent draws are tallied; progress writes and backups leave them intact")
+    assert (await repository.reset_samples())["sampled"] == {}
+    assert (await repository.snapshot())["sampled"] == {}
+    assert len((await repository.snapshot())["progress"]) == 1
+    checks.append("Reset clears the sampling history without touching practice progress")
     controls.unavailable(True)
     try:
         for operation in (repository.snapshot(), repository.record(result())):

@@ -8,10 +8,12 @@ from chugg.models import DrillResult, LineProgress
 from chugg.progress import (
     MAX_BACKUP_BYTES,
     MAX_COUNT,
+    count_sample,
     merge_progress,
     parse_backup,
     record_result,
     validate_preferences,
+    validate_samples,
 )
 
 LEGACY = (Path(__file__).parent / "fixtures/legacy-backup.json").read_text()
@@ -136,3 +138,29 @@ def test_integral_json_floats_keep_javascript_integer_display() -> None:
     assert type(parsed["progress"][0]["completions"]) is int
     assert type(parsed["progress"][0]["lastHints"]) is int
     assert type(parsed["exportedAt"]) is int
+
+
+def test_sampling_tally_counts_draws_per_line() -> None:
+    first = count_sample("italian-main", {})
+    assert first == {"italian-main": 1}
+    assert count_sample("italian-main", first) == {"italian-main": 2}
+    assert count_sample("sicilian-main", first) == {"italian-main": 1, "sicilian-main": 1}
+    # The source dictionary is never mutated in place; callers hold their own snapshot.
+    assert first == {"italian-main": 1}
+    assert count_sample("italian-main", {"italian-main": MAX_COUNT})["italian-main"] == MAX_COUNT
+    with pytest.raises(ValueError, match="Invalid sampled line"):
+        count_sample("not a line id", {})
+
+
+def test_sampling_tally_survives_unreadable_storage() -> None:
+    assert validate_samples({"italian-main": 2, "sicilian-main": 1.0}) == {
+        "italian-main": 2,
+        "sicilian-main": 1,
+    }
+    assert type(validate_samples({"italian-main": 2.0})["italian-main"]) is int
+    # Anything the sampler could not act on is dropped rather than failing the read.
+    assert validate_samples({"bad id": 3, "negative": -1, "text": "2", "zero": 0}) == {}
+    assert validate_samples({"huge": MAX_COUNT + 1, "flag": True}) == {}
+    unusable: list[object] = [None, [], "sampled", 7]
+    for value in unusable:
+        assert validate_samples(value) == {}
