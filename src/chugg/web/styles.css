@@ -842,6 +842,24 @@ body.dragging-piece .square {
   text-transform: uppercase;
   color: var(--muted);
 }
+.history-control {
+  width: min(100%, 260px);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  margin-top: -12px;
+}
+.history-status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--muted);
+}
+.reset-button:disabled {
+  opacity: 0.45;
+}
 .menu-actions {
   display: grid;
   gap: 8px;

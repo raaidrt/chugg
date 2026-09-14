@@ -14,6 +14,7 @@ type Action = Literal[
     "progress",
     "start",
     "exploration",
+    "reset-history",
     "replay",
     "square",
     "move",

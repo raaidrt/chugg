@@ -25,7 +25,7 @@ async function transaction(mutation) {
   const db = await database();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(['progress', 'settings'], mutation ? 'readwrite' : 'readonly');
-    let failure, result, pending = 2;
+    let failure, result, pending = 3;
     const snapshot = {};
     tx.oncomplete = () => { db.close(); resolve(JSON.stringify(result)); };
     tx.onabort = () => { db.close(); reject(failure || tx.error || new Error('Device storage is unavailable.')); };
@@ -38,6 +38,7 @@ async function transaction(mutation) {
         if (mutation) {
           for (const row of result.progress) tx.objectStore('progress').put(row);
           if (result.preferences) tx.objectStore('settings').put(result.preferences, 'preferences');
+          if (result.sampled) tx.objectStore('settings').put(result.sampled, 'sampled');
         }
       } catch (error) { failure = error; tx.abort(); }
     };
@@ -45,6 +46,8 @@ async function transaction(mutation) {
     rows.onsuccess = () => {snapshot.progress = rows.result; loaded();};
     const prefs = tx.objectStore('settings').get('preferences');
     prefs.onsuccess = () => {snapshot.preferences = prefs.result || null; loaded();};
+    const sampled = tx.objectStore('settings').get('sampled');
+    sampled.onsuccess = () => {snapshot.sampled = sampled.result || {}; loaded();};
   });
 }
 
