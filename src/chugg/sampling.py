@@ -10,7 +10,7 @@ POPULARITY_EXPONENT = 0.7
 # The exploration share blends popularity weights with a uniform pick:
 # (1 - alpha) * w / total + alpha / n. The home screen slider spans Popular..Random.
 EXPLORATION_MIN = 0.05
-EXPLORATION_MAX = 0.95
+EXPLORATION_MAX = 1.0
 
 
 def sample_side(rng: Callable[[], float] = random) -> Side:

@@ -39,14 +39,14 @@ Only aggregate counts and source identifiers/checksums are checked in. The sourc
 
 `src/chugg/sampling.py` filters the eligible catalog, applies a recent-drill cooldown, samples a family, then samples a complete line within that family. It commits to that line before its name is displayed.
 
-At both stages, with candidate counts `c`:
+At both stages, with candidate counts `c` and exploration share `α` set by the home-screen slider (0.05–1.00):
 
 ```text
 w(i) = max(c(i), 0)^0.7
-P(i) = 0.95 × w(i) / sum(w) + 0.05 / candidateCount
+P(i) = (1 − α) × w(i) / sum(w) + α / candidateCount
 ```
 
-If all candidate counts are zero, sampling is uniform. The 5% exploration component gives unobserved lines a chance. The exponent softens the gap between common and rare openings. Family counts are sums of the exclusive per-drill counts, so adding an unobserved line cannot inflate the family's frequency.
+If all candidate counts are zero, sampling is uniform; at α = 1.00 each stage is uniform regardless of counts. The exploration component gives unobserved lines a chance. The exponent softens the gap between common and rare openings. Family counts are sums of the exclusive per-drill counts, so adding an unobserved line cannot inflate the family's frequency.
 
 Recent IDs are excluded when at least one eligible alternative exists. If every eligible drill is recent, the sampler uses the full filtered pool. Within a still-eligible family, cooldown does not temporarily reduce the family's full reference count. An unknown family or empty input returns no result. The optional random-number source supports deterministic tests; production uses Python’s `random.random()`.
 

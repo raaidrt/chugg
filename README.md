@@ -44,7 +44,7 @@ The service worker precaches the entire distribution, including Python and its s
 ## What is included
 
 - The same 45 exact named opening lines across 13 families, with stable IDs and curated Lichess CC0 names/move orders.
-- Popularity-weighted family-then-variation selection, exponent 0.7, 5% exploration, and recent-line cooldown.
+- Popularity-weighted family-then-variation selection, exponent 0.7, an adjustable 5%–100% exploration share, and recent-line cooldown.
 - TWIC tournament issues 1600–1603 reference counts; tournament-sample frequencies, not online rapid population estimates.
 - Random White/Black assignment for each new drill, one-second name reveal, legal moves, 650 ms opponent replies, hints, move history, replay with the same side, and library browsing.
 - Device-only per-side progress, version 1 JSON export/import, persistent-storage requests, and Safari/Android installation guidance.
